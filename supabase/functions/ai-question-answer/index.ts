@@ -35,6 +35,8 @@ serve(async (req) => {
       }
     );
 
+    console.log('Processing question:', question);
+
     // Generate embedding for the question
     const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
@@ -48,7 +50,20 @@ serve(async (req) => {
       }),
     });
 
+    if (!embeddingResponse.ok) {
+      const errorText = await embeddingResponse.text();
+      console.error('OpenAI embedding error:', errorText);
+      throw new Error(`OpenAI embedding failed: ${embeddingResponse.status}`);
+    }
+
     const embeddingData = await embeddingResponse.json();
+    console.log('Embedding data structure:', JSON.stringify(embeddingData, null, 2));
+
+    if (!embeddingData.data || !embeddingData.data[0] || !embeddingData.data[0].embedding) {
+      console.error('Invalid embedding response structure:', embeddingData);
+      throw new Error('Invalid response from OpenAI embedding API');
+    }
+
     const queryEmbedding = embeddingData.data[0].embedding;
 
     // Search for relevant document chunks
@@ -65,10 +80,14 @@ serve(async (req) => {
       console.error('Search error:', searchError);
     }
 
+    console.log('Search results:', searchResults);
+
     // Prepare context from relevant documents
     const context = searchResults?.map((result: any) => 
       `${result.document_title}: ${result.chunk_text}`
     ).join('\n\n') || '';
+
+    console.log('Context for Claude:', context.substring(0, 200) + '...');
 
     // Generate answer using Claude AI
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -99,7 +118,20 @@ Answer in Hungarian.`
       }),
     });
 
+    if (!claudeResponse.ok) {
+      const errorText = await claudeResponse.text();
+      console.error('Claude API error:', errorText);
+      throw new Error(`Claude API failed: ${claudeResponse.status}`);
+    }
+
     const claudeData = await claudeResponse.json();
+    console.log('Claude response structure:', JSON.stringify(claudeData, null, 2));
+
+    if (!claudeData.content || !claudeData.content[0] || !claudeData.content[0].text) {
+      console.error('Invalid Claude response structure:', claudeData);
+      throw new Error('Invalid response from Claude API');
+    }
+
     const answer = claudeData.content[0].text;
 
     // Extract sources from search results
@@ -120,8 +152,11 @@ Answer in Hungarian.`
       .single();
 
     if (sessionError) {
+      console.error('Session save error:', sessionError);
       throw sessionError;
     }
+
+    console.log('Successfully saved Q&A session');
 
     return new Response(
       JSON.stringify({
