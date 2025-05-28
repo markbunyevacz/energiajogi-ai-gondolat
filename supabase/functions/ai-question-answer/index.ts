@@ -115,7 +115,19 @@ ${context}
 
 Question: ${question}
 
-Please provide a comprehensive answer based on the context provided. If the context doesn't contain relevant information, provide general guidance about Hungarian energy law. Always cite specific sources when available.
+Please provide a comprehensive answer based on the context provided. If the context doesn't contain relevant information, provide general guidance about Hungarian energy law. 
+
+IMPORTANT: When citing laws or regulations, ALWAYS include clickable links to official sources:
+- For Hungarian laws and regulations: https://net.jogtar.hu/ (search for the specific law number)
+- For EU directives and regulations: https://eur-lex.europa.eu/ (search for the specific directive/regulation)
+- For MEKH decisions and regulations: https://mekh.hu/
+- For official publications: https://magyarkozlony.hu/
+
+Format your citations like this:
+- "2007. évi LXXXVI. törvény a villamos energiáról (VET) [https://net.jogtar.hu/jogszabaly?docid=A0700086.TV]"
+- "EU Directive 2019/944 [https://eur-lex.europa.eu/legal-content/HU/TXT/?uri=CELEX:32019L0944]"
+
+Always cite specific sources when available and provide direct links to the referenced legal documents.
 
 Answer in Hungarian.`
           }
@@ -139,8 +151,16 @@ Answer in Hungarian.`
 
     const answer = claudeData.content[0].text;
 
-    // Extract sources from search results
-    const sources = searchResults?.map((result: any) => result.document_title) || [];
+    // Extract sources from search results and add official legal sources
+    const documentSources = searchResults?.map((result: any) => result.document_title) || [];
+    const legalSources = [
+      'Magyar Közlöny - https://magyarkozlony.hu/',
+      'Nemzeti Jogszabálytár - https://net.jogtar.hu/',
+      'MEKH - https://mekh.hu/',
+      'EUR-Lex - https://eur-lex.europa.eu/'
+    ];
+    
+    const allSources = [...documentSources, ...legalSources];
     const confidence = searchResults?.length > 0 ? Math.min(95, 75 + searchResults.length * 5) : 60;
 
     // Save Q&A session to database
@@ -149,7 +169,7 @@ Answer in Hungarian.`
       .insert({
         question,
         answer,
-        sources: Array.from(new Set(sources)),
+        sources: Array.from(new Set(allSources)),
         confidence,
         user_id: userId,
       })

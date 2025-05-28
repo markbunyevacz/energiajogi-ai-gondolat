@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare, Send, Book, Clock, ThumbsUp, ThumbsDown, Copy, ExternalLink } from 'lucide-react';
+import { MessageSquare, Send, Book, Clock, ThumbsUp, ThumbsDown, Copy, ExternalLink, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -32,6 +32,13 @@ export function QuestionAnswer() {
     'Milyen jogok illetik meg a fogyasztót áramkimaradás esetén?',
     'Mi a különbség az egyetemes és versenypiaci szolgáltatás között?',
     'Hogyan lehet panaszt tenni az energiaszolgáltató ellen?'
+  ];
+
+  const legalSources = [
+    { name: 'Magyar Közlöny', url: 'https://magyarkozlony.hu/', description: 'Hivatalos lap' },
+    { name: 'Nemzeti Jogszabálytár', url: 'https://net.jogtar.hu/', description: 'Jogszabályok' },
+    { name: 'MEKH', url: 'https://mekh.hu/', description: 'Energetikai hatóság' },
+    { name: 'EUR-Lex', url: 'https://eur-lex.europa.eu/homepage.html', description: 'EU jogszabályok' }
   ];
 
   useEffect(() => {
@@ -111,53 +118,100 @@ export function QuestionAnswer() {
     }
   };
 
+  const isUrl = (text: string): boolean => {
+    return text.includes('http://') || text.includes('https://');
+  };
+
+  const extractUrlFromSource = (source: string): string | null => {
+    const urlMatch = source.match(/(https?:\/\/[^\s)]+)/);
+    return urlMatch ? urlMatch[1] : null;
+  };
+
+  const getSourceDisplayName = (source: string): string => {
+    if (isUrl(source)) {
+      return source.split(' - ')[0] || source;
+    }
+    return source;
+  };
+
   return (
     <div className="space-y-6">
-      {/* Question Input */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <MessageSquare className="w-5 h-5 text-mav-blue" />
-            <span>Jogi Kérdés Feltevése</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Textarea
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Írja be energiajogi kérdését... (pl. Mi a teendő energiaszolgáltatói szerződésszegés esetén?)"
-                className="min-h-[100px] resize-none"
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-500">
-                {question.length}/1000 karakter
-              </div>
-              <Button 
-                type="submit" 
-                disabled={!question.trim() || isLoading}
-                className="bg-mav-blue hover:bg-mav-blue-dark"
+      <div className="flex justify-between items-start gap-6">
+        <div className="flex-1">
+          {/* Question Input */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MessageSquare className="w-5 h-5 text-mav-blue" />
+                <span>Jogi Kérdés Feltevése</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Textarea
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    placeholder="Írja be energiajogi kérdését... (pl. Mi a teendő energiaszolgáltatói szerződésszegés esetén?)"
+                    className="min-h-[100px] resize-none"
+                    disabled={isLoading}
+                  />
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-500">
+                    {question.length}/1000 karakter
+                  </div>
+                  <Button 
+                    type="submit" 
+                    disabled={!question.trim() || isLoading}
+                    className="bg-mav-blue hover:bg-mav-blue-dark"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        AI feldolgozás...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Kérdés Elküldése
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* External Legal Sources Widget */}
+        <Card className="w-80 shrink-0">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2 text-lg">
+              <BookOpen className="w-5 h-5 text-mav-blue" />
+              <span>Elsődleges Jogi Források</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {legalSources.map((source, index) => (
+              <a
+                key={index}
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-2 rounded-lg border hover:bg-gray-50 transition-colors group"
               >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    AI feldolgozás...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Kérdés Elküldése
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                <div>
+                  <div className="font-medium text-sm">{source.name}</div>
+                  <div className="text-xs text-gray-500">{source.description}</div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-mav-blue transition-colors" />
+              </a>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Suggested Questions */}
       <Card>
@@ -237,16 +291,40 @@ export function QuestionAnswer() {
                           Források:
                         </h4>
                         <div className="flex flex-wrap gap-2">
-                          {session.sources.map((source, index) => (
-                            <Badge
-                              key={index}
-                              variant="outline"
-                              className="text-xs cursor-pointer hover:bg-mav-blue hover:text-white transition-colors"
-                            >
-                              <ExternalLink className="w-3 h-3 mr-1" />
-                              {source}
-                            </Badge>
-                          ))}
+                          {session.sources.map((source, index) => {
+                            const url = extractUrlFromSource(source);
+                            const displayName = getSourceDisplayName(source);
+                            
+                            if (url) {
+                              return (
+                                <a
+                                  key={index}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center"
+                                >
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs cursor-pointer hover:bg-mav-blue hover:text-white transition-colors"
+                                  >
+                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                    {displayName}
+                                  </Badge>
+                                </a>
+                              );
+                            } else {
+                              return (
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="text-xs"
+                                >
+                                  {source}
+                                </Badge>
+                              );
+                            }
+                          })}
                         </div>
                       </div>
                     </>
