@@ -17,7 +17,7 @@ export function useAnalyticsTracking() {
       const { error } = await supabase
         .from('analytics_events')
         .insert({
-          user_id: user?.id,
+          user_id: user?.id || null,
           event_type: event.event_type,
           event_data: event.event_data || {},
           session_id: event.session_id || generateSessionId(),
@@ -93,7 +93,7 @@ export function useAnalyticsTracking() {
           cost_amount,
           usage_units,
           cost_per_unit,
-          user_id: user?.id
+          user_id: user?.id || null
         });
 
       if (error) {
