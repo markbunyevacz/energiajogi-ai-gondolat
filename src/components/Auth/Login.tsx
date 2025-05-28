@@ -1,196 +1,269 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Shield, Zap, FileText, Users } from 'lucide-react';
+import { useAuth } from "@/hooks/useAuth";
+import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 
 export function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const { login, isLoading } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    name: '',
+    confirmPassword: ''
+  });
+  
+  const { login, signup } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+    setError('');
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     setError('');
 
-    const success = await login(email, password);
-    if (!success) {
-      setError('Hibás email cím. Próbálja meg: jogasz@energiajog.hu, it@energiajog.hu, vagy tulajdonos@energiajog.hu');
+    try {
+      const success = await login(formData.email, formData.password);
+      if (success) {
+        navigate('/');
+      } else {
+        setError('Hibás email cím vagy jelszó');
+      }
+    } catch (err) {
+      setError('Bejelentkezési hiba történt');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const quickLoginOptions = [
-    { email: 'jogasz@energiajog.hu', role: 'Jogász', description: 'Jogi elemzések és dokumentumkeresés' },
-    { email: 'it@energiajog.hu', role: 'IT Vezető', description: 'Rendszer metrikák és technikai áttekintés' },
-    { email: 'tulajdonos@energiajog.hu', role: 'Tulajdonos', description: 'Üzleti mutatók és ROI elemzés' }
-  ];
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('A jelszavak nem egyeznek');
+      setIsLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('A jelszónak legalább 6 karakter hosszúnak kell lennie');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const success = await signup(formData.email, formData.password, formData.name);
+      if (success) {
+        navigate('/');
+      } else {
+        setError('Regisztrációs hiba történt');
+      }
+    } catch (err) {
+      setError('Regisztrációs hiba történt');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-mav-blue via-mav-blue-light to-mav-blue-dark flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
-        {/* Left Side - Welcome Content */}
-        <div className="text-white space-y-8 lg:pr-8">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-lg rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">EJ</span>
-              </div>
-              <h1 className="text-3xl lg:text-4xl font-bold">Energiajogi AI Rendszer</h1>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold text-mav-blue">
+            Energiajogi AI Rendszer
+          </CardTitle>
+          <p className="text-gray-600">Jelentkezzen be a folytatáshoz</p>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Bejelentkezés</TabsTrigger>
+              <TabsTrigger value="signup">Regisztráció</TabsTrigger>
+            </TabsList>
             
-            <p className="text-xl text-white/90 leading-relaxed">
-              Mesterséges intelligencia alapú megoldás energiajogi dokumentumok kezelésére, 
-              elemzésére és jogi kérdések megválaszolására.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-semibold">Dokumentum Kezelés</h3>
-              </div>
-              <p className="text-white/80 text-sm">
-                Feltöltés, keresés és elemzés energiajogi dokumentumokban
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-semibold">AI Jogi Asszisztens</h3>
-              </div>
-              <p className="text-white/80 text-sm">
-                Claude AI alapú válaszok jogi kérdésekre
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-semibold">Szerződés Elemzés</h3>
-              </div>
-              <p className="text-white/80 text-sm">
-                Automatikus kockázatelemzés és javaslatok
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-semibold">Multi-role Dashboard</h3>
-              </div>
-              <p className="text-white/80 text-sm">
-                Szerepkör-specifikus nézetek és jogosultságok
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side - Login Form */}
-        <div className="space-y-6">
-          <Card className="glass-effect">
-            <CardHeader className="text-center space-y-2">
-              <CardTitle className="text-2xl text-mav-blue">Bejelentkezés</CardTitle>
-              <CardDescription>
-                Válassza ki a szerepkörét a DEMO kipróbálásához
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {error && (
-                <Alert className="border-red-200 bg-red-50">
-                  <AlertDescription className="text-red-800">{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="pelda@energiajog.hu"
-                    required
-                    className="bg-white/50"
-                  />
+                  <Label htmlFor="email">Email cím</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      className="pl-10"
+                      placeholder="pelda@email.com"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                    />
+                  </div>
                 </div>
-
+                
                 <div className="space-y-2">
                   <Label htmlFor="password">Jelszó</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Bármilyen jelszó működik"
-                    required
-                    className="bg-white/50"
-                  />
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      className="pl-10 pr-10"
+                      placeholder="Jelszó"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
-                <Button 
-                  type="submit" 
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button
+                  type="submit"
                   className="w-full bg-mav-blue hover:bg-mav-blue-dark"
                   disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Bejelentkezés...
-                    </>
-                  ) : (
-                    'Bejelentkezés'
-                  )}
+                  {isLoading ? 'Bejelentkezés...' : 'Bejelentkezés'}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
+            </TabsContent>
 
-          {/* Quick Login Options */}
-          <Card className="glass-effect">
-            <CardHeader>
-              <CardTitle className="text-lg text-mav-blue">Gyors Bejelentkezés</CardTitle>
-              <CardDescription>
-                Kattintson a szerepkörre a azonnali belépéshez
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {quickLoginOptions.map((option) => (
-                <Button
-                  key={option.email}
-                  variant="outline"
-                  className="w-full justify-start text-left h-auto p-4 bg-white/50 hover:bg-white/70"
-                  onClick={() => {
-                    setEmail(option.email);
-                    setPassword('demo');
-                  }}
-                >
-                  <div className="flex flex-col items-start space-y-1">
-                    <div className="font-medium text-mav-blue">{option.role}</div>
-                    <div className="text-xs text-gray-600">{option.description}</div>
-                    <div className="text-xs text-gray-500">{option.email}</div>
+            <TabsContent value="signup">
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Teljes név</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="signup-name"
+                      name="name"
+                      type="text"
+                      required
+                      className="pl-10"
+                      placeholder="Név"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                    />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email cím</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="signup-email"
+                      name="email"
+                      type="email"
+                      required
+                      className="pl-10"
+                      placeholder="pelda@email.com"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Jelszó</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="signup-password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      className="pl-10 pr-10"
+                      placeholder="Minimum 6 karakter"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Jelszó megerősítése</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="confirm-password"
+                      name="confirmPassword"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      className="pl-10"
+                      placeholder="Jelszó újra"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-mav-blue hover:bg-mav-blue-dark"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Regisztráció...' : 'Regisztráció'}
                 </Button>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }

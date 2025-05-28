@@ -1,15 +1,17 @@
-
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, CheckCircle, AlertCircle, X } from 'lucide-react';
-import { DocumentType } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+
+type DocumentType = 'szerződés' | 'rendelet' | 'szabályzat' | 'törvény' | 'határozat' | 'egyéb';
 
 interface UploadedFile {
   id: string;
@@ -19,14 +21,26 @@ interface UploadedFile {
   status: 'uploading' | 'processing' | 'completed' | 'error';
   progress: number;
   documentType?: DocumentType;
+  file?: File;
+}
+
+interface StoredDocument {
+  id: string;
+  title: string;
+  type: DocumentType;
+  file_size: number;
+  upload_date: string;
+  file_path: string;
 }
 
 export function DocumentUpload() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [storedDocuments, setStoredDocuments] = useState<StoredDocument[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [selectedType, setSelectedType] = useState<DocumentType>('egyéb');
   const [keywords, setKeywords] = useState('');
   const [source, setSource] = useState('');
+  const { user } = useAuth();
 
   const documentTypes: { value: DocumentType; label: string }[] = [
     { value: 'szerződés', label: 'Szerződés' },
@@ -36,6 +50,27 @@ export function DocumentUpload() {
     { value: 'határozat', label: 'Határozat' },
     { value: 'egyéb', label: 'Egyéb' }
   ];
+
+  useEffect(() => {
+    if (user) {
+      fetchStoredDocuments();
+    }
+  }, [user]);
+
+  const fetchStoredDocuments = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('documents')
+      .select('id, title, type, file_size, upload_date, file_path')
+      .order('upload_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching documents:', error);
+    } else {
+      setStoredDocuments(data || []);
+    }
+  };
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -71,41 +106,69 @@ export function DocumentUpload() {
       type: file.type,
       status: 'uploading',
       progress: 0,
-      documentType: selectedType
+      documentType: selectedType,
+      file: file
     }));
 
     setFiles(prev => [...prev, ...newFiles]);
 
-    // Simulate upload process
+    // Start upload process for each file
     newFiles.forEach(file => {
-      simulateUpload(file.id);
+      uploadToSupabase(file);
     });
   };
 
-  const simulateUpload = (fileId: string) => {
-    const updateProgress = (progress: number, status: UploadedFile['status']) => {
-      setFiles(prev => prev.map(file => 
-        file.id === fileId ? { ...file, progress, status } : file
-      ));
-    };
+  const uploadToSupabase = async (uploadFile: UploadedFile) => {
+    if (!user || !uploadFile.file) return;
 
-    // Simulate upload progress
-    let progress = 0;
-    const uploadInterval = setInterval(() => {
-      progress += Math.random() * 30;
-      if (progress >= 100) {
-        progress = 100;
-        updateProgress(progress, 'processing');
-        clearInterval(uploadInterval);
-        
-        // Simulate processing
-        setTimeout(() => {
-          updateProgress(100, 'completed');
-        }, 2000);
-      } else {
-        updateProgress(progress, 'uploading');
-      }
-    }, 500);
+    try {
+      // Update progress to show upload starting
+      updateFileProgress(uploadFile.id, 10, 'uploading');
+
+      // Upload file to Supabase Storage
+      const filePath = `${user.id}/${Date.now()}_${uploadFile.file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, uploadFile.file);
+
+      if (uploadError) throw uploadError;
+
+      updateFileProgress(uploadFile.id, 70, 'processing');
+
+      // Save document metadata to database
+      const { error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          title: uploadFile.name,
+          type: uploadFile.documentType || 'egyéb',
+          file_path: filePath,
+          file_size: uploadFile.size,
+          uploaded_by: user.id,
+          metadata: {
+            source: source,
+            keywords: keywords.split(',').map(k => k.trim()).filter(k => k)
+          }
+        });
+
+      if (dbError) throw dbError;
+
+      updateFileProgress(uploadFile.id, 100, 'completed');
+      toast.success(`${uploadFile.name} sikeresen feltöltve`);
+      
+      // Refresh the stored documents list
+      fetchStoredDocuments();
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      updateFileProgress(uploadFile.id, 0, 'error');
+      toast.error(`Hiba ${uploadFile.name} feltöltésekor`);
+    }
+  };
+
+  const updateFileProgress = (fileId: string, progress: number, status: UploadedFile['status']) => {
+    setFiles(prev => prev.map(file => 
+      file.id === fileId ? { ...file, progress, status } : file
+    ));
   };
 
   const removeFile = (fileId: string) => {
@@ -242,7 +305,7 @@ export function DocumentUpload() {
       {files.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Feltöltött Fájlok ({files.length})</CardTitle>
+            <CardTitle>Feltöltés folyamatban ({files.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -286,6 +349,45 @@ export function DocumentUpload() {
                     {file.status !== 'completed' && file.status !== 'error' && (
                       <Progress value={file.progress} className="mt-2 h-2" />
                     )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Stored Documents */}
+      {storedDocuments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Tárolt Dokumentumok ({storedDocuments.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {storedDocuments.map(doc => (
+                <div
+                  key={doc.id}
+                  className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-gray-50"
+                >
+                  <div className="flex-shrink-0">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {doc.title}
+                      </p>
+                      <Badge variant="outline">
+                        {doc.type}
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
+                      <span>{formatFileSize(doc.file_size)}</span>
+                      <span>{new Date(doc.upload_date).toLocaleDateString('hu-HU')}</span>
+                    </div>
                   </div>
                 </div>
               ))}

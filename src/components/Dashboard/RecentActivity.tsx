@@ -1,9 +1,8 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { FileText, MessageSquare, Shield, Upload, Search, AlertTriangle, Activity } from 'lucide-react';
-import { UserRole } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ActivityItem {
   id: string;
@@ -15,53 +14,29 @@ interface ActivityItem {
   status?: 'success' | 'warning' | 'error';
 }
 
-interface RecentActivityProps {
-  role: UserRole;
-}
+export function RecentActivity() {
+  const { profile } = useAuth();
 
-export function RecentActivity({ role }: RecentActivityProps) {
   const getActivitiesForRole = (): ActivityItem[] => {
+    const role = profile?.role || 'jogász';
+    
     switch (role) {
       case 'jogász':
         return [
           {
             id: '1',
             type: 'question',
-            title: 'Jogi kérdés: Energiaszerződés felmondása',
-            description: 'Mi a határidő lakossági energiaszerződés felmondására?',
+            title: 'Új kérdés feltéve',
+            description: 'Használja a Q&A szekciót energiajogi kérdések feltevéséhez',
             timestamp: '5 perce',
             status: 'success'
           },
           {
             id: '2',
-            type: 'analysis',
-            title: 'Szerződéselemzés befejezve',
-            description: 'MVM Áramszolgáltatási szerződés - 3 kockázat azonosítva',
-            timestamp: '12 perce',
-            status: 'warning'
-          },
-          {
-            id: '3',
-            type: 'search',
-            title: 'Dokumentumkeresés',
-            description: 'Keresés: "force majeure energiaszerződés"',
-            timestamp: '25 perce',
-            status: 'success'
-          },
-          {
-            id: '4',
             type: 'document',
-            title: 'Új dokumentum indexelve',
-            description: 'MEKH Rendelet 2024/15 - Energiahatékonysági követelmények',
+            title: 'Dokumentumtár elérhető',
+            description: 'Töltse fel energiajogi dokumentumokat elemzéshez',
             timestamp: '1 órája',
-            status: 'success'
-          },
-          {
-            id: '5',
-            type: 'question',
-            title: 'Jogi kérdés: Csatlakozási díjak',
-            description: 'Milyen díjakat számíthat fel a hálózatüzemeltető?',
-            timestamp: '2 órája',
             status: 'success'
           }
         ];
@@ -71,41 +46,17 @@ export function RecentActivity({ role }: RecentActivityProps) {
           {
             id: '1',
             type: 'alert',
-            title: 'API használat figyelmeztetés',
-            description: 'Claude API használat elérte a 85%-ot',
+            title: 'Rendszer állapot',
+            description: 'Minden rendszer normálisan működik',
             timestamp: '10 perce',
-            status: 'warning'
+            status: 'success'
           },
           {
             id: '2',
             type: 'upload',
-            title: 'Dokumentum feldolgozás',
-            description: '15 új dokumentum sikeresen indexelve',
+            title: 'Adatbázis elérhető',
+            description: 'Supabase kapcsolat aktív',
             timestamp: '1 órája',
-            status: 'success'
-          },
-          {
-            id: '3',
-            type: 'alert',
-            title: 'Rendszer teljesítmény',
-            description: 'Válaszidő optimalizálás befejezve - 15% javulás',
-            timestamp: '3 órája',
-            status: 'success'
-          },
-          {
-            id: '4',
-            type: 'document',
-            title: 'Vektoradatbázis frissítés',
-            description: 'FAISS index újragenerálva - 1,250 dokumentum',
-            timestamp: '5 órája',
-            status: 'success'
-          },
-          {
-            id: '5',
-            type: 'alert',
-            title: 'Biztonsági mentés',
-            description: 'Napi biztonsági mentés sikeresen befejezve',
-            timestamp: '8 órája',
             status: 'success'
           }
         ];
@@ -115,41 +66,17 @@ export function RecentActivity({ role }: RecentActivityProps) {
           {
             id: '1',
             type: 'analysis',
-            title: 'Havi jelentés generálva',
-            description: '450k Ft költségmegtakarítás ez hónapban',
+            title: 'Rendszer telepítve',
+            description: 'Az energiajogi AI rendszer sikeresen beüzemelt',
             timestamp: '1 órája',
             status: 'success'
           },
           {
             id: '2',
             type: 'document',
-            title: 'ROI elemzés frissült',
-            description: 'Befektetés megtérülés: 340% (előző hónap: 295%)',
-            timestamp: '1 napja',
-            status: 'success'
-          },
-          {
-            id: '3',
-            type: 'alert',
-            title: 'Új ügyfél regisztráció',
-            description: 'E.ON Energiakereskedő csatlakozott a rendszerhez',
-            timestamp: '2 napja',
-            status: 'success'
-          },
-          {
-            id: '4',
-            type: 'analysis',
-            title: 'Kockázatcsökkentés jelentés',
-            description: '65% kockázatcsökkentés az automatizált elemzésekkel',
-            timestamp: '3 napja',
-            status: 'success'
-          },
-          {
-            id: '5',
-            type: 'document',
-            title: 'Compliance audit',
-            description: 'GDPR megfelelőségi audit sikeresen teljesítve',
-            timestamp: '1 hete',
+            title: 'Adatbázis inicializálva',
+            description: 'Minden szükséges tábla létrehozva',
+            timestamp: '2 órája',
             status: 'success'
           }
         ];

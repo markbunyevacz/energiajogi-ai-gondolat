@@ -9,7 +9,213 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      contract_analyses: {
+        Row: {
+          analyzed_by: string | null
+          contract_id: string | null
+          created_at: string | null
+          id: string
+          recommendations: string[] | null
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          summary: string | null
+        }
+        Insert: {
+          analyzed_by?: string | null
+          contract_id?: string | null
+          created_at?: string | null
+          id?: string
+          recommendations?: string[] | null
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          summary?: string | null
+        }
+        Update: {
+          analyzed_by?: string | null
+          contract_id?: string | null
+          created_at?: string | null
+          id?: string
+          recommendations?: string[] | null
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_analyses_analyzed_by_fkey"
+            columns: ["analyzed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_analyses_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          metadata: Json | null
+          title: string
+          type: Database["public"]["Enums"]["document_type"]
+          updated_at: string | null
+          upload_date: string | null
+          uploaded_by: string | null
+          vector_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          title: string
+          type: Database["public"]["Enums"]["document_type"]
+          updated_at?: string | null
+          upload_date?: string | null
+          uploaded_by?: string | null
+          vector_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          title?: string
+          type?: Database["public"]["Enums"]["document_type"]
+          updated_at?: string | null
+          upload_date?: string | null
+          uploaded_by?: string | null
+          vector_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          id: string
+          name: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      qa_sessions: {
+        Row: {
+          answer: string
+          confidence: number | null
+          created_at: string | null
+          id: string
+          question: string
+          sources: string[] | null
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          question: string
+          sources?: string[] | null
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          question?: string
+          sources?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      risks: {
+        Row: {
+          analysis_id: string | null
+          created_at: string | null
+          description: string
+          id: string
+          recommendation: string | null
+          section: string | null
+          severity: Database["public"]["Enums"]["risk_level"]
+          type: Database["public"]["Enums"]["risk_type"]
+        }
+        Insert: {
+          analysis_id?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          recommendation?: string | null
+          section?: string | null
+          severity: Database["public"]["Enums"]["risk_level"]
+          type: Database["public"]["Enums"]["risk_type"]
+        }
+        Update: {
+          analysis_id?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          recommendation?: string | null
+          section?: string | null
+          severity?: Database["public"]["Enums"]["risk_level"]
+          type?: Database["public"]["Enums"]["risk_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risks_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "contract_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +224,16 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      document_type:
+        | "szerződés"
+        | "rendelet"
+        | "szabályzat"
+        | "törvény"
+        | "határozat"
+        | "egyéb"
+      risk_level: "low" | "medium" | "high"
+      risk_type: "legal" | "financial" | "operational"
+      user_role: "jogász" | "it_vezető" | "tulajdonos"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +348,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      document_type: [
+        "szerződés",
+        "rendelet",
+        "szabályzat",
+        "törvény",
+        "határozat",
+        "egyéb",
+      ],
+      risk_level: ["low", "medium", "high"],
+      risk_type: ["legal", "financial", "operational"],
+      user_role: ["jogász", "it_vezető", "tulajdonos"],
+    },
   },
 } as const
