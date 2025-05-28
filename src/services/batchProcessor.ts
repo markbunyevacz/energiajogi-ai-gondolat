@@ -20,7 +20,7 @@ class BatchProcessor<T, R> {
   private options: BatchProcessorOptions;
 
   constructor(
-    private processBatch: (items: T[]) => Promise<R[]>,
+    private processBatchFn: (items: T[]) => Promise<R[]>,
     options: Partial<BatchProcessorOptions> = {}
   ) {
     this.options = {
@@ -50,18 +50,18 @@ class BatchProcessor<T, R> {
 
       // Process immediately if batch is full
       if (this.queue.length >= this.options.batchSize) {
-        this.processBatch();
+        this.processQueuedBatch();
       }
     });
   }
 
   private startTimer(): void {
     this.timer = setTimeout(() => {
-      this.processBatch();
+      this.processQueuedBatch();
     }, this.options.maxWaitTime);
   }
 
-  private async processBatch(): Promise<void> {
+  private async processQueuedBatch(): Promise<void> {
     if (this.processing || this.queue.length === 0) {
       return;
     }
@@ -81,7 +81,7 @@ class BatchProcessor<T, R> {
       console.log(`Processing batch of ${batch.length} items`);
       
       const startTime = performance.now();
-      const results = await this.processBatch(batch.map(task => task.data));
+      const results = await this.processBatchFn(batch.map(task => task.data));
       const endTime = performance.now();
       
       console.log(`Batch processed in ${endTime - startTime}ms`);
