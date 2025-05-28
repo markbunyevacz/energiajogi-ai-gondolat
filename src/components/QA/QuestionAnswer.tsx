@@ -64,56 +64,29 @@ export function QuestionAnswer() {
     setIsLoading(true);
     
     try {
-      // Generate a mock answer for now (will be replaced with real AI in Phase 3)
-      const mockAnswer = generateMockAnswer(question);
-      const mockSources = generateMockSources();
-      const confidence = Math.floor(Math.random() * 20) + 80;
-
-      const { data, error } = await supabase
-        .from('qa_sessions')
-        .insert({
-          question: question,
-          answer: mockAnswer,
-          sources: mockSources,
-          confidence: confidence,
-          user_id: user.id
-        })
-        .select()
-        .single();
+      // Call the AI Q&A edge function
+      const { data, error } = await supabase.functions.invoke('ai-question-answer', {
+        body: {
+          question: question.trim(),
+          userId: user.id,
+        },
+      });
 
       if (error) throw error;
 
-      setSessions(prev => [data, ...prev]);
-      setQuestion('');
-      toast.success('Kérdés sikeresen elküldve');
+      if (data.success) {
+        setSessions(prev => [data.session, ...prev]);
+        setQuestion('');
+        toast.success('Kérdés sikeresen feldolgozva');
+      } else {
+        throw new Error(data.error || 'Ismeretlen hiba');
+      }
     } catch (error) {
-      console.error('Error saving Q&A session:', error);
-      toast.error('Hiba a kérdés mentésekor');
+      console.error('Error processing question:', error);
+      toast.error('Hiba a kérdés feldolgozásakor. Kérjük próbálja újra.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const generateMockAnswer = (q: string): string => {
-    const answers = [
-      'Az energiajogi szabályozás szerint ez a kérdés több jogszabályban is szabályozott. A VET alapján...',
-      'A MEKH rendeletei szerint ebben az esetben a szolgáltató köteles...',
-      'Az energiapiaci szabályozás értelmében a fogyasztó jogosult...',
-      'A hatályos jogszabályok alapján ez a helyzet a következőképpen alakul...'
-    ];
-    return answers[Math.floor(Math.random() * answers.length)] + ' [Ez egy demo válasz. A valódi AI válaszok a következő fázisban kerülnek implementálásra.]';
-  };
-
-  const generateMockSources = (): string[] => {
-    const sources = [
-      'VET 2007. évi LXXXVI. törvény',
-      'MEKH Rendelet 2/2013',
-      'Fogyasztóvédelmi szabályzat',
-      'Egyetemes Szolgáltatási Szabályzat',
-      'MVM Szerződési feltételek',
-      'E.ON Általános Szerződési Feltételek'
-    ];
-    return sources.slice(0, Math.floor(Math.random() * 3) + 2);
   };
 
   const copyToClipboard = (text: string) => {
@@ -172,7 +145,7 @@ export function QuestionAnswer() {
                 {isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    Feldolgozás...
+                    AI feldolgozás...
                   </>
                 ) : (
                   <>
@@ -199,6 +172,7 @@ export function QuestionAnswer() {
                 variant="outline"
                 className="text-left h-auto p-3 justify-start hover:bg-mav-blue hover:text-white transition-colors"
                 onClick={() => setQuestion(q)}
+                disabled={isLoading}
               >
                 <div className="text-sm">{q}</div>
               </Button>
@@ -247,7 +221,7 @@ export function QuestionAnswer() {
 
                   {/* Answer */}
                   <div className="space-y-2">
-                    <h3 className="font-medium text-gray-900">Válasz:</h3>
+                    <h3 className="font-medium text-gray-900">AI Válasz:</h3>
                     <div className="prose prose-sm max-w-none">
                       <p className="text-gray-700 whitespace-pre-line">{session.answer}</p>
                     </div>

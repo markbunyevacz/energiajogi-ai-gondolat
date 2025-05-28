@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, X, Brain } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -18,10 +19,11 @@ interface UploadedFile {
   name: string;
   size: number;
   type: string;
-  status: 'uploading' | 'processing' | 'completed' | 'error';
+  status: 'uploading' | 'processing' | 'ai-processing' | 'completed' | 'error';
   progress: number;
   documentType?: DocumentType;
   file?: File;
+  documentId?: string;
 }
 
 interface StoredDocument {
@@ -31,6 +33,7 @@ interface StoredDocument {
   file_size: number;
   upload_date: string;
   file_path: string;
+  content: string | null;
 }
 
 export function DocumentUpload() {
@@ -62,7 +65,7 @@ export function DocumentUpload() {
 
     const { data, error } = await supabase
       .from('documents')
-      .select('id, title, type, file_size, upload_date, file_path')
+      .select('id, title, type, file_size, upload_date, file_path, content')
       .order('upload_date', { ascending: false });
 
     if (error) {
@@ -118,6 +121,15 @@ export function DocumentUpload() {
     });
   };
 
+  const extractTextFromFile = async (file: File): Promise<string> => {
+    // Simple text extraction - in production, you'd use a proper library
+    if (file.type === 'text/plain') {
+      return await file.text();
+    }
+    // For demo purposes, return placeholder text for other file types
+    return `[Dokumentum tartalma: ${file.name}]\n\nEz egy demo szöveg a dokumentum tartalmának helyettesítésére. Valós implementációban PDF/DOC fájlok szövegét kellene kinyerni.`;
+  };
+
   const uploadToSupabase = async (uploadFile: UploadedFile) => {
     if (!user || !uploadFile.file) return;
 
@@ -133,10 +145,13 @@ export function DocumentUpload() {
 
       if (uploadError) throw uploadError;
 
-      updateFileProgress(uploadFile.id, 70, 'processing');
+      updateFileProgress(uploadFile.id, 40, 'processing');
+
+      // Extract text content from file
+      const content = await extractTextFromFile(uploadFile.file);
 
       // Save document metadata to database
-      const { error: dbError } = await supabase
+      const { data: documentData, error: dbError } = await supabase
         .from('documents')
         .insert({
           title: uploadFile.name,
@@ -144,16 +159,39 @@ export function DocumentUpload() {
           file_path: filePath,
           file_size: uploadFile.size,
           uploaded_by: user.id,
+          content: content,
           metadata: {
             source: source,
             keywords: keywords.split(',').map(k => k.trim()).filter(k => k)
           }
-        });
+        })
+        .select()
+        .single();
 
       if (dbError) throw dbError;
 
+      // Update file with document ID
+      setFiles(prev => prev.map(file => 
+        file.id === uploadFile.id ? { ...file, documentId: documentData.id } : file
+      ));
+
+      updateFileProgress(uploadFile.id, 70, 'ai-processing');
+
+      // Process document with AI for embeddings
+      const { data: aiData, error: aiError } = await supabase.functions.invoke('process-document', {
+        body: {
+          documentId: documentData.id,
+          content: content,
+        },
+      });
+
+      if (aiError) {
+        console.error('AI processing error:', aiError);
+        // Continue without AI processing
+      }
+
       updateFileProgress(uploadFile.id, 100, 'completed');
-      toast.success(`${uploadFile.name} sikeresen feltöltve`);
+      toast.success(`${uploadFile.name} sikeresen feltöltve és feldolgozva`);
       
       // Refresh the stored documents list
       fetchStoredDocuments();
@@ -162,6 +200,37 @@ export function DocumentUpload() {
       console.error('Upload error:', error);
       updateFileProgress(uploadFile.id, 0, 'error');
       toast.error(`Hiba ${uploadFile.name} feltöltésekor`);
+    }
+  };
+
+  const analyzeContract = async (document: StoredDocument) => {
+    if (!document.content || !user) {
+      toast.error('A dokumentum tartalma nem elérhető az elemzéshez');
+      return;
+    }
+
+    try {
+      toast.info('Szerződés elemzése folyamatban...');
+
+      const { data, error } = await supabase.functions.invoke('analyze-contract', {
+        body: {
+          documentId: document.id,
+          content: document.content,
+          userId: user.id,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success('Szerződés elemzése befejezve');
+        // You could navigate to analysis view or show results
+      } else {
+        throw new Error(data.error || 'Ismeretlen hiba');
+      }
+    } catch (error) {
+      console.error('Analysis error:', error);
+      toast.error('Hiba a szerződés elemzésekor');
     }
   };
 
@@ -189,6 +258,8 @@ export function DocumentUpload() {
         return <CheckCircle className="w-5 h-5 text-green-600" />;
       case 'error':
         return <AlertCircle className="w-5 h-5 text-red-600" />;
+      case 'ai-processing':
+        return <Brain className="w-5 h-5 text-purple-600" />;
       default:
         return <FileText className="w-5 h-5 text-blue-600" />;
     }
@@ -200,10 +271,29 @@ export function DocumentUpload() {
         return 'bg-green-100 text-green-800';
       case 'error':
         return 'bg-red-100 text-red-800';
+      case 'ai-processing':
+        return 'bg-purple-100 text-purple-800';
       case 'processing':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: UploadedFile['status']) => {
+    switch (status) {
+      case 'uploading':
+        return 'Feltöltés';
+      case 'processing':
+        return 'Feldolgozás';
+      case 'ai-processing':
+        return 'AI Feldolgozás';
+      case 'completed':
+        return 'Befejezve';
+      case 'error':
+        return 'Hiba';
+      default:
+        return 'Ismeretlen';
     }
   };
 
@@ -274,13 +364,13 @@ export function DocumentUpload() {
           >
             <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Dokumentumok feltöltése
+              Dokumentumok feltöltése AI feldolgozással
             </h3>
             <p className="text-gray-600 mb-4">
               Húzza ide a fájlokat vagy kattintson a tallózáshoz
             </p>
             <p className="text-sm text-gray-500 mb-4">
-              Támogatott formátumok: PDF, DOC, DOCX (max. 10MB)
+              Támogatott formátumok: PDF, DOC, DOCX, TXT (max. 10MB)
             </p>
             <div>
               <Button asChild className="bg-mav-blue hover:bg-mav-blue-dark">
@@ -292,7 +382,7 @@ export function DocumentUpload() {
                 id="file-upload"
                 type="file"
                 multiple
-                accept=".pdf,.doc,.docx"
+                accept=".pdf,.doc,.docx,.txt"
                 className="hidden"
                 onChange={handleFileInput}
               />
@@ -325,10 +415,7 @@ export function DocumentUpload() {
                       </p>
                       <div className="flex items-center space-x-2">
                         <Badge className={getStatusColor(file.status)}>
-                          {file.status === 'uploading' && 'Feltöltés'}
-                          {file.status === 'processing' && 'Feldolgozás'}
-                          {file.status === 'completed' && 'Befejezve'}
-                          {file.status === 'error' && 'Hiba'}
+                          {getStatusText(file.status)}
                         </Badge>
                         <Button
                           variant="ghost"
@@ -379,9 +466,21 @@ export function DocumentUpload() {
                       <p className="text-sm font-medium text-gray-900 truncate">
                         {doc.title}
                       </p>
-                      <Badge variant="outline">
-                        {doc.type}
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline">
+                          {doc.type}
+                        </Badge>
+                        {doc.type === 'szerződés' && doc.content && (
+                          <Button
+                            size="sm"
+                            onClick={() => analyzeContract(doc)}
+                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                          >
+                            <Brain className="w-4 h-4 mr-1" />
+                            Elemzés
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
