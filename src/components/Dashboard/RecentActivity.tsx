@@ -114,7 +114,7 @@ export function RecentActivity({ role }: RecentActivityProps) {
     <Card className="col-span-1 lg:col-span-2">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Activity className="w-5 h-5 text-mav-blue" />
+          <Activity className="w-5 h-5 text-blue-600" />
           <span>Legutóbbi Tevékenységek</span>
         </CardTitle>
       </CardHeader>
@@ -129,7 +129,7 @@ export function RecentActivity({ role }: RecentActivityProps) {
                 className="flex items-start space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150"
               >
                 <Avatar className="w-10 h-10">
-                  <AvatarFallback className="bg-mav-blue text-white">
+                  <AvatarFallback className="bg-blue-600 text-white">
                     <Icon className="w-5 h-5" />
                   </AvatarFallback>
                 </Avatar>

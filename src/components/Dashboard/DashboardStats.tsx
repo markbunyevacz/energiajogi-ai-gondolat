@@ -170,7 +170,11 @@ export function DashboardStatsComponent({ role, stats }: DashboardStatsProps) {
                 {/* Progress bar for certain metrics */}
                 {(stat.title.includes('Teljesítmény') || stat.title.includes('Hatékonyság') || stat.title.includes('Kockázati')) && (
                   <Progress 
-                    value={parseInt(stat.value.replace('%', '').replace('ms', '')) || 85} 
+                    value={
+                      typeof stat.value === 'string' 
+                        ? parseInt(stat.value.replace('%', '').replace('ms', '')) || 85
+                        : 85
+                    } 
                     className="h-2"
                   />
                 )}

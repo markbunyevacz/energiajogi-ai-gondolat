@@ -6,7 +6,6 @@ import { DashboardStatsComponent } from "@/components/Dashboard/DashboardStats";
 import { RecentActivity } from "@/components/Dashboard/RecentActivity";
 import { QuestionAnswer } from "@/components/QA/QuestionAnswer";
 import { DocumentUpload } from "@/components/Documents/DocumentUpload";
-import { ContractAnalysis } from "@/components/Analysis/ContractAnalysis";
 import { RealTimeDashboard } from "@/components/Analytics/RealTimeDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,10 +95,9 @@ const Index = () => {
 
             {/* Main Content Tabs */}
             <Tabs defaultValue="qa" className="space-y-6">
-              <TabsList className="grid grid-cols-4 w-full max-w-md">
+              <TabsList className="grid grid-cols-3 w-full max-w-md">
                 <TabsTrigger value="qa">Kérdés-Válasz</TabsTrigger>
                 <TabsTrigger value="upload">Dokumentumok</TabsTrigger>
-                <TabsTrigger value="analysis">Szerződés Elemzés</TabsTrigger>
                 <TabsTrigger value="activity">Aktivitás</TabsTrigger>
               </TabsList>
 
@@ -111,12 +109,8 @@ const Index = () => {
                 <DocumentUpload />
               </TabsContent>
 
-              <TabsContent value="analysis" className="space-y-6">
-                <ContractAnalysis />
-              </TabsContent>
-
               <TabsContent value="activity" className="space-y-6">
-                <RecentActivity />
+                <RecentActivity role={profile?.role || 'jogász'} />
               </TabsContent>
             </Tabs>
           </div>

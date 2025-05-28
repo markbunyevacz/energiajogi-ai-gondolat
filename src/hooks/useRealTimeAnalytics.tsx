@@ -37,7 +37,7 @@ export function useRealTimeAnalytics(timeRangeHours: number = 24) {
       });
       
       if (error) throw error;
-      return data as RealTimeAnalytics;
+      return data as unknown as RealTimeAnalytics;
     },
     refetchInterval: 30000, // Refetch every 30 seconds
   });
