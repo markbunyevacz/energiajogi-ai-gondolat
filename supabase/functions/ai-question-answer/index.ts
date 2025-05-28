@@ -89,11 +89,16 @@ serve(async (req) => {
 
     console.log('Context for Claude:', context.substring(0, 200) + '...');
 
-    // Generate answer using Claude AI
+    // Generate answer using Claude AI - Fixed authentication
+    const claudeApiKey = Deno.env.get('CLAUDE_API_KEY');
+    if (!claudeApiKey) {
+      throw new Error('Claude API key not configured');
+    }
+
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('CLAUDE_API_KEY')}`,
+        'x-api-key': claudeApiKey,  // Changed from Authorization to x-api-key
         'Content-Type': 'application/json',
         'anthropic-version': '2023-06-01',
       },
