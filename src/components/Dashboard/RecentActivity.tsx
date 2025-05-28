@@ -1,8 +1,13 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { FileText, MessageSquare, Shield, Upload, Search, AlertTriangle, Activity } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { UserRole } from '@/types';
+
+interface RecentActivityProps {
+  role: UserRole;
+}
 
 interface ActivityItem {
   id: string;
@@ -14,12 +19,8 @@ interface ActivityItem {
   status?: 'success' | 'warning' | 'error';
 }
 
-export function RecentActivity() {
-  const { profile } = useAuth();
-
+export function RecentActivity({ role }: RecentActivityProps) {
   const getActivitiesForRole = (): ActivityItem[] => {
-    const role = profile?.role || 'jogász';
-    
     switch (role) {
       case 'jogász':
         return [
