@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { MessageSquare, Send, Book, Clock, ThumbsUp, ThumbsDown, Copy, ExternalLink, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useOptimizedSearch } from '@/hooks/useOptimizedSearch';
+import { PerformanceMetrics } from '@/components/Performance/PerformanceMetrics';
 import { toast } from 'sonner';
 
 interface QASession {
@@ -24,6 +25,7 @@ export function QuestionAnswer() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessions, setSessions] = useState<QASession[]>([]);
   const { user } = useAuth();
+  const { search, results, performanceStats } = useOptimizedSearch(false);
 
   const suggestedQuestions = [
     'Milyen feltételekkel lehet energiaszerződést módosítani?',
@@ -71,11 +73,15 @@ export function QuestionAnswer() {
     setIsLoading(true);
     
     try {
+      // Use optimized search first
+      await search(question);
+      
       // Call the AI Q&A edge function
       const { data, error } = await supabase.functions.invoke('ai-question-answer', {
         body: {
           question: question.trim(),
           userId: user.id,
+          searchResults: results?.chunks || []
         },
       });
 
@@ -136,6 +142,9 @@ export function QuestionAnswer() {
 
   return (
     <div className="space-y-6">
+      {/* Performance Metrics */}
+      <PerformanceMetrics />
+      
       <div className="flex justify-between items-start gap-6">
         <div className="flex-1">
           {/* Question Input */}
@@ -144,6 +153,11 @@ export function QuestionAnswer() {
               <CardTitle className="flex items-center space-x-2">
                 <MessageSquare className="w-5 h-5 text-mav-blue" />
                 <span>Jogi Kérdés Feltevése</span>
+                {performanceStats && (
+                  <Badge variant="outline" className="ml-auto">
+                    Cache: {performanceStats.cache.hitRate.toFixed(0)}%
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -156,6 +170,11 @@ export function QuestionAnswer() {
                     className="min-h-[100px] resize-none"
                     disabled={isLoading}
                   />
+                  {results && (
+                    <div className="text-xs text-gray-500">
+                      Találatok: {results.totalResults} | Feldolgozási idő: {results.processingTime.toFixed(1)}ms
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex justify-between items-center">
