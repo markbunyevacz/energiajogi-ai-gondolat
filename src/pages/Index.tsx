@@ -1,269 +1,128 @@
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { Login } from '@/components/Auth/Login';
-import { Header } from '@/components/Layout/Header';
-import { DashboardStatsComponent } from '@/components/Dashboard/DashboardStats';
-import { RecentActivity } from '@/components/Dashboard/RecentActivity';
-import { DocumentUpload } from '@/components/Documents/DocumentUpload';
-import { QuestionAnswer } from '@/components/QA/QuestionAnswer';
-import { ContractAnalysisComponent } from '@/components/Analysis/ContractAnalysis';
+import { useAuth } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/Layout/ProtectedRoute";
+import { Header } from "@/components/Layout/Header";
+import { DashboardStatsComponent } from "@/components/Dashboard/DashboardStats";
+import { RecentActivity } from "@/components/Dashboard/RecentActivity";
+import { QuestionAnswer } from "@/components/QA/QuestionAnswer";
+import { DocumentUpload } from "@/components/Documents/DocumentUpload";
+import { ContractAnalysis } from "@/components/Analysis/ContractAnalysis";
+import { RealTimeDashboard } from "@/components/Analytics/RealTimeDashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Lightbulb, Zap, FileText, MessageSquare, Shield, Users, TrendingUp, Sparkles } from 'lucide-react';
-import { DashboardStats, UserRole } from '@/types';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAnalyticsTracking } from "@/hooks/useAnalyticsTracking";
+import { useEffect } from "react";
 
 const Index = () => {
-  const { user, profile, isLoading } = useAuth();
-  const [currentPage, setCurrentPage] = useState('dashboard');
-
-  const mockStats: DashboardStats = {
-    totalDocuments: 1247,
-    recentQueries: 89,
-    contractsAnalyzed: 34,
-    riskScore: 25,
-    costSavings: 450,
-    apiUsage: 85,
-    userActivity: 24
-  };
+  const { user, profile } = useAuth();
+  const { trackPageView } = useAnalyticsTracking();
 
   useEffect(() => {
-    if (user) {
-      // Add fade-in animation to dashboard
-      document.body.style.opacity = '0';
-      setTimeout(() => {
-        document.body.style.transition = 'opacity 0.3s ease-in';
-        document.body.style.opacity = '1';
-      }, 100);
-    }
-  }, [user]);
+    trackPageView('/');
+  }, [trackPageView]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-mav-blue border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-gray-600">Betöltés...</p>
-        </div>
-      </div>
-    );
-  }
+  // Fetch dashboard stats
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      // Fetch various statistics
+      const { data: documents } = await supabase
+        .from('documents')
+        .select('id')
+        .limit(1000);
+      
+      const { data: qaRecent } = await supabase
+        .from('qa_sessions')
+        .select('id')
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .limit(1000);
+      
+      const { data: contracts } = await supabase
+        .from('contract_analyses')
+        .select('id')
+        .limit(1000);
 
-  if (!user) {
-    return <Login />;
-  }
-
-  const userRole: UserRole = (profile?.role as UserRole) || 'jogász';
-
-  const renderContent = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return (
-          <div className="space-y-8">
-            {/* Welcome Banner */}
-            <Card className="gradient-bg text-white border-0">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <h1 className="text-2xl font-bold">
-                      Üdvözöljük, {profile?.name || 'Felhasználó'}!
-                    </h1>
-                    <p className="text-white/90">
-                      {userRole === 'jogász' && 'Jogi elemzések és dokumentumkeresés központja'}
-                      {userRole === 'it_vezető' && 'Rendszer teljesítmény és technikai metrikák'}
-                      {userRole === 'tulajdonos' && 'Üzleti mutatók és ROI elemzés'}
-                    </p>
-                  </div>
-                  <div className="hidden md:flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="text-sm text-white/80">Rendszer státusz</div>
-                      <Badge className="bg-green-500 text-white">Működőképes</Badge>
-                    </div>
-                    <Sparkles className="w-8 h-8 text-white/80" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Role-specific Welcome Message */}
-            <Alert className="border-mav-blue bg-blue-50">
-              <Lightbulb className="h-4 w-4" />
-              <AlertDescription>
-                {userRole === 'jogász' && (
-                  <>
-                    <strong>Jogász módban:</strong> Hozzáférése van a teljes dokumentumadatbázishoz, 
-                    jogi Q&A funkcióhoz és részletes szerződéselemzéshez. Kezdje egy kérdés feltevésével 
-                    vagy dokumentum keresésével.
-                  </>
-                )}
-                {userRole === 'it_vezető' && (
-                  <>
-                    <strong>IT Vezető módban:</strong> Láthatja a rendszer teljesítmény metrikákat, 
-                    API használatot és technikai mutatókat. Monitorozhatja a rendszer egészségét és optimalizálhatja a működést.
-                  </>
-                )}
-                {userRole === 'tulajdonos' && (
-                  <>
-                    <strong>Tulajdonos módban:</strong> Hozzáférése van az üzleti mutatókhoz, 
-                    ROI számításokhoz és költségmegtakarítási jelentésekhez. Láthatja a rendszer üzleti értékét.
-                  </>
-                )}
-              </AlertDescription>
-            </Alert>
-
-            {/* Dashboard Stats */}
-            <DashboardStatsComponent role={userRole} stats={mockStats} />
-
-            {/* Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <RecentActivity role={userRole} />
-              
-              {/* Quick Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Zap className="w-5 h-5 text-mav-blue" />
-                    <span>Gyors Műveletek</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setCurrentPage('documents')}
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Dokumentum Feltöltése
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setCurrentPage('qa')}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Jogi Kérdés Feltevése
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setCurrentPage('analysis')}
-                  >
-                    <Shield className="w-4 h-4 mr-2" />
-                    Szerződés Elemzése
-                  </Button>
-                  
-                  {userRole === 'tulajdonos' && (
-                    <div className="pt-3 border-t">
-                      <div className="text-sm text-gray-600 mb-2">Üzleti mutatók</div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Havi ROI:</span>
-                          <span className="font-medium text-green-600">+340%</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Költségmegtakarítás:</span>
-                          <span className="font-medium text-green-600">450k Ft</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Demo Information */}
-            <Card className="border-dashed border-2 border-mav-blue bg-blue-50/50">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-mav-blue">
-                  <Users className="w-5 h-5" />
-                  <span>DEMO Információk</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-mav-blue">1,247</div>
-                    <div className="text-sm text-gray-600">Előre feltöltött dokumentum</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-mav-blue">Claude AI</div>
-                    <div className="text-sm text-gray-600">Anthropic AI motor</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-mav-blue">99.8%</div>
-                    <div className="text-sm text-gray-600">Válasz pontosság</div>
-                  </div>
-                </div>
-                
-                <Alert>
-                  <TrendingUp className="h-4 w-4" />
-                  <AlertDescription>
-                    Ez egy működő DEMO verzió. Az energiajogi dokumentumok előre feltöltve, 
-                    a Claude AI válaszokat ad valós kérdésekre, és a szerződéselemzés működőképes. 
-                    Próbálja ki az összes funkciót!
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          </div>
-        );
-
-      case 'documents':
-        return (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold text-gray-900">Dokumentumkezelés</h1>
-              <p className="text-gray-600">
-                Energiajogi dokumentumok feltöltése, keresése és kezelése
-              </p>
-            </div>
-            <DocumentUpload />
-          </div>
-        );
-
-      case 'qa':
-        return (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold text-gray-900">Jogi Q&A Asszisztens</h1>
-              <p className="text-gray-600">
-                Tegyen fel energiajogi kérdéseket és kapjon AI-alapú válaszokat
-              </p>
-            </div>
-            <QuestionAnswer />
-          </div>
-        );
-
-      case 'analysis':
-        return (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold text-gray-900">Szerződéselemzés</h1>
-              <p className="text-gray-600">
-                Energiajogi szerződések automatikus elemzése és kockázatértékelése
-              </p>
-            </div>
-            <ContractAnalysisComponent />
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
+      return {
+        totalDocuments: documents?.length || 0,
+        recentQueries: qaRecent?.length || 0,
+        contractsAnalyzed: contracts?.length || 0,
+        riskScore: 25, // This could be calculated from actual risk data
+        apiUsage: 85,
+        userActivity: 24,
+        costSavings: 450
+      };
+    },
+    enabled: !!user
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="animate-fade-in">
-          {renderContent()}
-        </div>
-      </main>
-    </div>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Üdvözöljük, {profile?.name || 'Felhasználó'}!
+              </h1>
+              <p className="text-gray-600 mt-2">
+                {profile?.role === 'jogász' && 'Jogi AI asszisztens - Dokumentumok elemzése és kérdések megválaszolása'}
+                {profile?.role === 'it_vezető' && 'IT vezető dashboard - Rendszer teljesítmény és metrikák'}
+                {profile?.role === 'tulajdonos' && 'Tulajdonos áttekintés - Business metrikák és ROI'}
+              </p>
+            </div>
+
+            {/* Dashboard Stats */}
+            {stats && (
+              <DashboardStatsComponent 
+                role={profile?.role || 'jogász'} 
+                stats={stats}
+              />
+            )}
+
+            {/* Real-time Analytics for IT Leaders and Owners */}
+            {(profile?.role === 'it_vezető' || profile?.role === 'tulajdonos') && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Valós Idejű Analytics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RealTimeDashboard />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Main Content Tabs */}
+            <Tabs defaultValue="qa" className="space-y-6">
+              <TabsList className="grid grid-cols-4 w-full max-w-md">
+                <TabsTrigger value="qa">Kérdés-Válasz</TabsTrigger>
+                <TabsTrigger value="upload">Dokumentumok</TabsTrigger>
+                <TabsTrigger value="analysis">Szerződés Elemzés</TabsTrigger>
+                <TabsTrigger value="activity">Aktivitás</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="qa" className="space-y-6">
+                <QuestionAnswer />
+              </TabsContent>
+
+              <TabsContent value="upload" className="space-y-6">
+                <DocumentUpload />
+              </TabsContent>
+
+              <TabsContent value="analysis" className="space-y-6">
+                <ContractAnalysis />
+              </TabsContent>
+
+              <TabsContent value="activity" className="space-y-6">
+                <RecentActivity />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </main>
+      </div>
+    </ProtectedRoute>
   );
 };
 

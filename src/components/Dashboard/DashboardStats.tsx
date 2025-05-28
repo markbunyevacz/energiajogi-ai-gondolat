@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, FileText, MessageSquare, Shield, DollarSign, Activity, Users } from 'lucide-react';
 import { UserRole, DashboardStats } from '@/types';
+import { useRealTimeAnalytics } from '@/hooks/useRealTimeAnalytics';
 
 interface DashboardStatsProps {
   role: UserRole;
@@ -11,6 +12,8 @@ interface DashboardStatsProps {
 }
 
 export function DashboardStatsComponent({ role, stats }: DashboardStatsProps) {
+  const { data: analyticsData } = useRealTimeAnalytics(24);
+
   const getStatsForRole = () => {
     switch (role) {
       case 'jogász':
@@ -52,33 +55,33 @@ export function DashboardStatsComponent({ role, stats }: DashboardStatsProps) {
       case 'it_vezető':
         return [
           {
-            title: 'API Használat',
-            value: `${stats.apiUsage || 85}%`,
-            description: 'Havi kvóta',
+            title: 'API Teljesítmény',
+            value: `${analyticsData?.api_performance.avg_response_time.toFixed(0) || 'N/A'}ms`,
+            description: 'Átlagos válaszidő',
             icon: Activity,
-            trend: { value: 12, isPositive: true },
+            trend: { value: 12, isPositive: analyticsData?.api_performance.avg_response_time < 2000 },
             color: 'text-blue-600'
           },
           {
-            title: 'Rendszer Teljesítmény',
-            value: '99.8%',
-            description: 'Üzemidő',
+            title: 'Rendszer Állapot',
+            value: analyticsData?.system_health?.filter(s => s.status === 'healthy').length || 0,
+            description: `${analyticsData?.system_health?.length || 0} szolgáltatásból`,
             icon: TrendingUp,
             trend: { value: 0.2, isPositive: true },
             color: 'text-green-600'
           },
           {
-            title: 'Felhasználók',
-            value: `${stats.userActivity || 24}`,
-            description: 'Aktív felhasználó',
+            title: 'Aktív Felhasználók',
+            value: `${analyticsData?.user_activity.active_users || stats.userActivity || 24}`,
+            description: 'Utolsó 24 órában',
             icon: Users,
             trend: { value: 18, isPositive: true },
             color: 'text-purple-600'
           },
           {
-            title: 'Válaszidő',
-            value: '1.2s',
-            description: 'Átlagos válaszidő',
+            title: 'Hibaarány',
+            value: `${analyticsData?.api_performance.error_rate.toFixed(1) || '0.2'}%`,
+            description: 'API hibák',
             icon: Activity,
             trend: { value: 8, isPositive: false },
             color: 'text-orange-600'
@@ -88,11 +91,11 @@ export function DashboardStatsComponent({ role, stats }: DashboardStatsProps) {
       case 'tulajdonos':
         return [
           {
-            title: 'Költségmegtakarítás',
-            value: `${(stats.costSavings || 450).toLocaleString()} eFt`,
-            description: 'Ez hónapban',
+            title: 'Napi Költségek',
+            value: `${analyticsData?.costs.total_cost.toFixed(0) || (stats.costSavings || 450)} Ft`,
+            description: 'Mai költség',
             icon: DollarSign,
-            trend: { value: 23, isPositive: true },
+            trend: { value: 23, isPositive: false },
             color: 'text-green-600'
           },
           {
@@ -104,17 +107,17 @@ export function DashboardStatsComponent({ role, stats }: DashboardStatsProps) {
             color: 'text-blue-600'
           },
           {
-            title: 'Hatékonyság',
-            value: '75%',
-            description: 'Időmegtakarítás',
+            title: 'Felhasználói Aktivitás',
+            value: `${analyticsData?.user_activity.total_events || 156}`,
+            description: 'Események ma',
             icon: Activity,
             trend: { value: 12, isPositive: true },
             color: 'text-purple-600'
           },
           {
-            title: 'Kockázatcsökkentés',
-            value: '65%',
-            description: 'Azonosított kockázatok',
+            title: 'Rendszer Hatékonyság',
+            value: `${analyticsData?.api_performance.avg_response_time < 2000 ? '95' : '87'}%`,
+            description: 'Teljesítmény index',
             icon: Shield,
             trend: { value: 18, isPositive: true },
             color: 'text-orange-600'
@@ -165,9 +168,9 @@ export function DashboardStatsComponent({ role, stats }: DashboardStatsProps) {
                 </div>
                 
                 {/* Progress bar for certain metrics */}
-                {(stat.title.includes('Használat') || stat.title.includes('Hatékonyság') || stat.title.includes('Kockázati')) && (
+                {(stat.title.includes('Teljesítmény') || stat.title.includes('Hatékonyság') || stat.title.includes('Kockázati')) && (
                   <Progress 
-                    value={parseInt(stat.value.replace('%', ''))} 
+                    value={parseInt(stat.value.replace('%', '').replace('ms', '')) || 85} 
                     className="h-2"
                   />
                 )}

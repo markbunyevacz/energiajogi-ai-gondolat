@@ -18,6 +18,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = performance.now();
+
   try {
     const { question, userId }: RequestBody = await req.json();
 
@@ -37,7 +39,15 @@ serve(async (req) => {
 
     console.log('Processing question:', question);
 
+    // Track analytics event
+    await supabaseClient.from('analytics_events').insert({
+      user_id: userId,
+      event_type: 'question_asked',
+      event_data: { question_length: question.length }
+    });
+
     // Generate embedding for the question
+    const embeddingStartTime = performance.now();
     const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
@@ -53,10 +63,27 @@ serve(async (req) => {
     if (!embeddingResponse.ok) {
       const errorText = await embeddingResponse.text();
       console.error('OpenAI embedding error:', errorText);
+      
+      // Track error
+      await supabaseClient.from('performance_metrics').insert({
+        metric_type: 'embedding_error',
+        metric_value: performance.now() - embeddingStartTime,
+        metadata: { error: errorText }
+      });
+      
       throw new Error(`OpenAI embedding failed: ${embeddingResponse.status}`);
     }
 
     const embeddingData = await embeddingResponse.json();
+    const embeddingTime = performance.now() - embeddingStartTime;
+    
+    // Track embedding performance
+    await supabaseClient.from('performance_metrics').insert({
+      metric_type: 'embedding_time',
+      metric_value: embeddingTime,
+      metadata: { model: 'text-embedding-ada-002' }
+    });
+
     console.log('Embedding data structure:', JSON.stringify(embeddingData, null, 2));
 
     if (!embeddingData.data || !embeddingData.data[0] || !embeddingData.data[0].embedding) {
@@ -67,6 +94,7 @@ serve(async (req) => {
     const queryEmbedding = embeddingData.data[0].embedding;
 
     // Search for relevant document chunks
+    const searchStartTime = performance.now();
     const { data: searchResults, error: searchError } = await supabaseClient.rpc(
       'search_documents',
       {
@@ -75,6 +103,15 @@ serve(async (req) => {
         match_count: 5,
       }
     );
+
+    const searchTime = performance.now() - searchStartTime;
+    
+    // Track search performance
+    await supabaseClient.from('performance_metrics').insert({
+      metric_type: 'document_search_time',
+      metric_value: searchTime,
+      metadata: { results_count: searchResults?.length || 0 }
+    });
 
     if (searchError) {
       console.error('Search error:', searchError);
@@ -89,7 +126,8 @@ serve(async (req) => {
 
     console.log('Context for Claude:', context.substring(0, 200) + '...');
 
-    // Generate answer using Claude AI - Fixed authentication
+    // Generate answer using Claude AI
+    const claudeStartTime = performance.now();
     const claudeApiKey = Deno.env.get('CLAUDE_API_KEY');
     if (!claudeApiKey) {
       throw new Error('Claude API key not configured');
@@ -98,7 +136,7 @@ serve(async (req) => {
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'x-api-key': claudeApiKey,  // Changed from Authorization to x-api-key
+        'x-api-key': claudeApiKey,
         'Content-Type': 'application/json',
         'anthropic-version': '2023-06-01',
       },
@@ -138,10 +176,27 @@ Answer in Hungarian.`
     if (!claudeResponse.ok) {
       const errorText = await claudeResponse.text();
       console.error('Claude API error:', errorText);
+      
+      // Track Claude error
+      await supabaseClient.from('performance_metrics').insert({
+        metric_type: 'claude_error',
+        metric_value: performance.now() - claudeStartTime,
+        metadata: { error: errorText }
+      });
+      
       throw new Error(`Claude API failed: ${claudeResponse.status}`);
     }
 
     const claudeData = await claudeResponse.json();
+    const claudeTime = performance.now() - claudeStartTime;
+    
+    // Track Claude performance
+    await supabaseClient.from('performance_metrics').insert({
+      metric_type: 'claude_response_time',
+      metric_value: claudeTime,
+      metadata: { model: 'claude-3-haiku-20240307' }
+    });
+
     console.log('Claude response structure:', JSON.stringify(claudeData, null, 2));
 
     if (!claudeData.content || !claudeData.content[0] || !claudeData.content[0].text) {
@@ -181,6 +236,32 @@ Answer in Hungarian.`
       throw sessionError;
     }
 
+    const totalTime = performance.now() - startTime;
+    
+    // Track overall API performance
+    await supabaseClient.from('performance_metrics').insert({
+      metric_type: 'api_response_time',
+      metric_value: totalTime,
+      metadata: { 
+        endpoint: 'ai-question-answer',
+        embedding_time: embeddingTime,
+        search_time: searchTime,
+        claude_time: claudeTime
+      }
+    });
+
+    // Track cost (estimated)
+    const estimatedCost = (embeddingData.usage?.total_tokens || 100) * 0.0001 + 
+                         (claudeData.usage?.output_tokens || 200) * 0.002;
+    
+    await supabaseClient.from('cost_tracking').insert({
+      service_type: 'ai_apis',
+      cost_amount: estimatedCost,
+      usage_units: (embeddingData.usage?.total_tokens || 0) + (claudeData.usage?.output_tokens || 0),
+      cost_per_unit: 0.001,
+      user_id: userId
+    });
+
     console.log('Successfully saved Q&A session');
 
     return new Response(
@@ -194,6 +275,20 @@ Answer in Hungarian.`
     );
 
   } catch (error) {
+    const totalTime = performance.now() - startTime;
+    
+    // Track error performance
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+    
+    await supabaseClient.from('performance_metrics').insert({
+      metric_type: 'api_error',
+      metric_value: totalTime,
+      metadata: { error: error.message }
+    });
+
     console.error('Error in ai-question-answer function:', error);
     return new Response(
       JSON.stringify({ 

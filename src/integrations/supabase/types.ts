@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       contract_analyses: {
         Row: {
           analyzed_by: string | null
@@ -53,6 +86,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cost_tracking: {
+        Row: {
+          cost_amount: number
+          cost_per_unit: number | null
+          created_at: string
+          id: string
+          service_type: string
+          usage_units: number | null
+          user_id: string | null
+        }
+        Insert: {
+          cost_amount: number
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          service_type: string
+          usage_units?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          cost_amount?: number
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          service_type?: string
+          usage_units?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       document_chunks: {
         Row: {
@@ -141,6 +204,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      performance_metrics: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          metric_type: string
+          metric_value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          metric_value: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          metric_value?: number
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -251,6 +338,36 @@ export type Database = {
           },
         ]
       }
+      system_health: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          response_time_ms: number | null
+          service_name: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          response_time_ms?: number | null
+          service_name: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          response_time_ms?: number | null
+          service_name?: string
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -259,6 +376,10 @@ export type Database = {
       binary_quantize: {
         Args: { "": string } | { "": unknown }
         Returns: unknown
+      }
+      get_real_time_analytics: {
+        Args: { time_range_hours?: number }
+        Returns: Json
       }
       halfvec_avg: {
         Args: { "": number[] }
