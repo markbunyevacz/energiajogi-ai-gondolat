@@ -2,10 +2,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { FileText, MessageSquare, Shield, Upload, Search, AlertTriangle } from 'lucide-react';
+import { FileText, MessageSquare, Shield, Upload, Search, AlertTriangle, Activity } from 'lucide-react';
 import { UserRole } from '@/types';
 
-interface Activity {
+interface ActivityItem {
   id: string;
   type: 'document' | 'question' | 'analysis' | 'upload' | 'search' | 'alert';
   title: string;
@@ -20,7 +20,7 @@ interface RecentActivityProps {
 }
 
 export function RecentActivity({ role }: RecentActivityProps) {
-  const getActivitiesForRole = (): Activity[] => {
+  const getActivitiesForRole = (): ActivityItem[] => {
     switch (role) {
       case 'jogász':
         return [
@@ -159,7 +159,7 @@ export function RecentActivity({ role }: RecentActivityProps) {
     }
   };
 
-  const getActivityIcon = (type: Activity['type']) => {
+  const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
       case 'document': return FileText;
       case 'question': return MessageSquare;
@@ -171,7 +171,7 @@ export function RecentActivity({ role }: RecentActivityProps) {
     }
   };
 
-  const getStatusColor = (status?: Activity['status']) => {
+  const getStatusColor = (status?: ActivityItem['status']) => {
     switch (status) {
       case 'success': return 'bg-green-100 text-green-800';
       case 'warning': return 'bg-yellow-100 text-yellow-800';
