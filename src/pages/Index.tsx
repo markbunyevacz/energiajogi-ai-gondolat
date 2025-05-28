@@ -13,10 +13,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lightbulb, Zap, FileText, MessageSquare, Shield, Users, TrendingUp, Sparkles } from 'lucide-react';
-import { DashboardStats } from '@/types';
+import { DashboardStats, UserRole } from '@/types';
 
 const Index = () => {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
 
   const mockStats: DashboardStats = {
@@ -55,6 +55,8 @@ const Index = () => {
     return <Login />;
   }
 
+  const userRole: UserRole = (profile?.role as UserRole) || 'jogász';
+
   const renderContent = () => {
     switch (currentPage) {
       case 'dashboard':
@@ -66,12 +68,12 @@ const Index = () => {
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
                     <h1 className="text-2xl font-bold">
-                      Üdvözöljük, {user.name}!
+                      Üdvözöljük, {profile?.name || 'Felhasználó'}!
                     </h1>
                     <p className="text-white/90">
-                      {user.role === 'jogász' && 'Jogi elemzések és dokumentumkeresés központja'}
-                      {user.role === 'it_vezető' && 'Rendszer teljesítmény és technikai metrikák'}
-                      {user.role === 'tulajdonos' && 'Üzleti mutatók és ROI elemzés'}
+                      {userRole === 'jogász' && 'Jogi elemzések és dokumentumkeresés központja'}
+                      {userRole === 'it_vezető' && 'Rendszer teljesítmény és technikai metrikák'}
+                      {userRole === 'tulajdonos' && 'Üzleti mutatók és ROI elemzés'}
                     </p>
                   </div>
                   <div className="hidden md:flex items-center space-x-4">
@@ -89,20 +91,20 @@ const Index = () => {
             <Alert className="border-mav-blue bg-blue-50">
               <Lightbulb className="h-4 w-4" />
               <AlertDescription>
-                {user.role === 'jogász' && (
+                {userRole === 'jogász' && (
                   <>
                     <strong>Jogász módban:</strong> Hozzáférése van a teljes dokumentumadatbázishoz, 
                     jogi Q&A funkcióhoz és részletes szerződéselemzéshez. Kezdje egy kérdés feltevésével 
                     vagy dokumentum keresésével.
                   </>
                 )}
-                {user.role === 'it_vezető' && (
+                {userRole === 'it_vezető' && (
                   <>
                     <strong>IT Vezető módban:</strong> Láthatja a rendszer teljesítmény metrikákat, 
                     API használatot és technikai mutatókat. Monitorozhatja a rendszer egészségét és optimalizálhatja a működést.
                   </>
                 )}
-                {user.role === 'tulajdonos' && (
+                {userRole === 'tulajdonos' && (
                   <>
                     <strong>Tulajdonos módban:</strong> Hozzáférése van az üzleti mutatókhoz, 
                     ROI számításokhoz és költségmegtakarítási jelentésekhez. Láthatja a rendszer üzleti értékét.
@@ -112,11 +114,11 @@ const Index = () => {
             </Alert>
 
             {/* Dashboard Stats */}
-            <DashboardStatsComponent role={user.role} stats={mockStats} />
+            <DashboardStatsComponent role={userRole} stats={mockStats} />
 
             {/* Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <RecentActivity role={user.role} />
+              <RecentActivity role={userRole} />
               
               {/* Quick Actions */}
               <Card>
@@ -152,7 +154,7 @@ const Index = () => {
                     Szerződés Elemzése
                   </Button>
                   
-                  {user.role === 'tulajdonos' && (
+                  {userRole === 'tulajdonos' && (
                     <div className="pt-3 border-t">
                       <div className="text-sm text-gray-600 mb-2">Üzleti mutatók</div>
                       <div className="space-y-2">
@@ -254,7 +256,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header currentPage={currentPage} onNavigate={setCurrentPage} />
+      <Header />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-fade-in">
