@@ -10,7 +10,10 @@ export const sortAnalyses = (analyses: ContractAnalysis[], sortBy: string): Cont
         const riskOrder = { high: 3, medium: 2, low: 1 };
         return riskOrder[b.riskLevel] - riskOrder[a.riskLevel];
       case 'contract':
-        return a.contractId.localeCompare(b.contractId);
+        // Handle null contractId values safely
+        const aContractId = a.contractId || '';
+        const bContractId = b.contractId || '';
+        return aContractId.localeCompare(bContractId);
       default:
         return 0;
     }
