@@ -4,7 +4,7 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-export const CLAUDE_MODEL = 'claude-3-5-sonnet-20241022';
+export const CLAUDE_MODEL = 'claude-3-haiku-20240307';
 
 export const CLAUDE_ANALYSIS_PROMPT = `You are a legal AI assistant specializing in Hungarian energy law contract analysis.
 
