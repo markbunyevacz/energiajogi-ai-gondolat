@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/hooks/useAuth";
 import { ContractAnalysis } from '@/types';
@@ -97,6 +96,7 @@ export function useContractAnalysis() {
     }
 
     try {
+      console.log('Starting contract analysis for document:', document.id);
       toast.info('Szerződés elemzése folyamatban...');
 
       const { data, error } = await supabase.functions.invoke('analyze-contract', {
@@ -109,20 +109,28 @@ export function useContractAnalysis() {
 
       if (error) {
         console.error('Function invoke error:', error);
-        toast.error('Hiba a szerződés elemzésekor: Ellenőrizze a Claude API kulcsot');
+        toast.error('Hiba a szerződés elemzésekor: Kapcsolódási probléma');
         return;
       }
 
+      console.log('Analysis response:', data);
+
       if (data?.success) {
-        toast.success('Szerződés elemzése befejezve');
+        toast.success('Szerződés elemzése sikeresen befejezve');
         fetchAnalyses();
       } else {
         console.error('Analysis failed:', data);
-        toast.error(data?.error || 'Ismeretlen hiba történt az elemzés során');
+        const errorMessage = data?.error || 'Ismeretlen hiba történt az elemzés során';
+        toast.error(`Elemzési hiba: ${errorMessage}`);
+        
+        // Log additional details for debugging
+        if (data?.details) {
+          console.error('Error details:', data.details);
+        }
       }
     } catch (error) {
       console.error('Analysis error:', error);
-      toast.error('Hiba a szerződés elemzésekor: Ellenőrizze a Claude API kulcsot');
+      toast.error('Hiba a szerződés elemzésekor: Kapcsolódási probléma');
     }
   };
 

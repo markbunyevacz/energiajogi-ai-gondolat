@@ -2,6 +2,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FileText, Download, Eye } from 'lucide-react';
 import { ContractAnalysis } from '@/types';
 import { AnalysisProcessingSteps } from './AnalysisProcessingSteps';
@@ -51,14 +52,6 @@ export function AnalysisListItem({ analysis, onSelect, onExport }: AnalysisListI
     }
   };
 
-  // Generate a proper display name for the contract
-  const getContractDisplayName = () => {
-    if (analysis.contractId && analysis.contractId !== 'null') {
-      return analysis.contractId;
-    }
-    return `Elemzés-${analysis.id.slice(0, 8)}`;
-  };
-
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="pt-4">
@@ -72,14 +65,23 @@ export function AnalysisListItem({ analysis, onSelect, onExport }: AnalysisListI
           </div>
           
           <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-            >
-              <Download className="w-4 h-4 mr-1" />
-              Export
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExport}
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    Export
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Elemzési eredmények exportálása JSON formátumban</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Button
               variant="outline"
               size="sm"
