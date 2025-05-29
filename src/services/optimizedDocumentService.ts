@@ -106,8 +106,8 @@ class OptimizedDocumentService {
       
       // Use the search_documents RPC function for vector similarity search
       const { data, error } = await supabase.rpc('search_documents', {
-        query_embedding: queryEmbedding,
-        match_threshold: 0.5, // Lowered threshold for better results
+        query_embedding: `[${queryEmbedding.join(',')}]`,
+        match_threshold: 0.5,
         match_count: request.limit || 10,
         doc_id: request.documentId || null
       });
@@ -118,7 +118,10 @@ class OptimizedDocumentService {
       }
 
       const chunks = (data || []).map((item: any) => ({
-        ...item,
+        id: item.chunk_id,
+        document_id: item.document_id,
+        chunk_text: item.chunk_text,
+        chunk_index: 0, // We don't have this from the RPC
         similarity: item.similarity || 0
       }));
 
