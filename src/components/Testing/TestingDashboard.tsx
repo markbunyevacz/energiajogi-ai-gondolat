@@ -1,29 +1,18 @@
-
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, Clock, AlertTriangle, Play, RefreshCw, Zap } from 'lucide-react';
+import { RefreshCw, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { TestAccountManager } from './TestAccountManager';
 import { TestDataGenerator } from './TestDataGenerator';
 import { FunctionalityTester } from './FunctionalityTester';
 import { PerformanceTester } from './PerformanceTester';
-import { RegressionTester } from './RegressionTester';
 import { AgentTester } from './AgentTester';
-
-export interface TestResult {
-  id: string;
-  testName: string;
-  category: 'authentication' | 'documents' | 'contracts' | 'qa' | 'agents' | 'performance' | 'security' | 'regression';
-  status: 'pending' | 'running' | 'passed' | 'failed' | 'warning';
-  message: string;
-  duration?: number;
-  details?: any;
-  timestamp: Date;
-}
+import { TestStatsCards } from './TestStatsCards';
+import { TestProgressCard } from './TestProgressCard';
+import { TestCategoryFilter } from './TestCategoryFilter';
+import { TestResultsList } from './TestResultsList';
+import { TestResult, TestCategory, TestStats } from './types';
 
 export function TestingDashboard() {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -32,7 +21,7 @@ export function TestingDashboard() {
   const [testProgress, setTestProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState<string>('');
 
-  const testCategories = [
+  const testCategories: TestCategory[] = [
     { id: 'all', name: 'Összes Teszt', icon: '🧪' },
     { id: 'authentication', name: 'Autentikáció', icon: '🔐' },
     { id: 'documents', name: 'Dokumentumok', icon: '📄' },
@@ -70,6 +59,9 @@ export function TestingDashboard() {
   };
 
   const runTestWithUpdate = async (testName: string, category: TestResult['category'], duration: number) => {
+    // Clear any existing test with the same name first
+    setTestResults(prev => prev.filter(result => result.testName !== testName));
+    
     // Add running test
     addTestResult({
       testName,
@@ -274,31 +266,11 @@ export function TestingDashboard() {
     }
   };
 
-  const getStatusIcon = (status: TestResult['status']) => {
-    switch (status) {
-      case 'passed': return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'failed': return <XCircle className="w-4 h-4 text-red-500" />;
-      case 'warning': return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-      case 'running': return <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />;
-      default: return <Clock className="w-4 h-4 text-gray-400" />;
-    }
-  };
-
-  const getStatusColor = (status: TestResult['status']) => {
-    switch (status) {
-      case 'passed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'failed': return 'bg-red-100 text-red-800 border-red-200';
-      case 'warning': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'running': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   const filteredResults = selectedCategory === 'all' 
     ? testResults 
     : testResults.filter(result => result.category === selectedCategory);
 
-  const getTestStats = () => {
+  const getTestStats = (): TestStats => {
     const total = testResults.length;
     const passed = testResults.filter(r => r.status === 'passed').length;
     const failed = testResults.filter(r => r.status === 'failed').length;
@@ -338,100 +310,13 @@ export function TestingDashboard() {
         </div>
       </div>
 
-      {/* Enhanced Test Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Összes Teszt</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                🧪
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <TestStatsCards stats={stats} />
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Sikeres</p>
-                <p className="text-2xl font-bold text-green-600">{stats.passed}</p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Figyelmeztetések</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.warnings}</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-yellow-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Sikertelen</p>
-                <p className="text-2xl font-bold text-red-600">{stats.failed}</p>
-              </div>
-              <XCircle className="w-8 h-8 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Futó</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.running}</p>
-              </div>
-              <RefreshCw className="w-8 h-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Enhanced Progress Bar with Phase Information */}
-      {isRunningComprehensive && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">🚀 Teljes Körű Tesztelési Terv Végrehajtás</h3>
-                  <p className="text-sm text-gray-600">{currentPhase}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{testProgress}%</span>
-                  <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
-                </div>
-              </div>
-              <Progress value={testProgress} className="w-full h-3" />
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>Inicializálás</span>
-                <span>Autentikáció</span>
-                <span>Dokumentumok</span>
-                <span>Szerződések</span>
-                <span>AI Ágensek</span>
-                <span>Teljesítmény</span>
-                <span>Regresszió</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <TestProgressCard 
+        isRunning={isRunningComprehensive}
+        progress={testProgress}
+        currentPhase={currentPhase}
+      />
 
       <Tabs defaultValue="results" className="w-full">
         <TabsList className="grid w-full grid-cols-6">
@@ -444,86 +329,13 @@ export function TestingDashboard() {
         </TabsList>
 
         <TabsContent value="results" className="space-y-4">
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-2">
-            {testCategories.map(category => (
-              <Button
-                key={category.id}
-                variant={selectedCategory === category.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(category.id)}
-              >
-                {category.icon} {category.name}
-              </Button>
-            ))}
-          </div>
+          <TestCategoryFilter 
+            categories={testCategories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
 
-          {/* Test Results */}
-          <div className="space-y-2">
-            {filteredResults.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <div className="space-y-4">
-                    <div className="text-6xl">🚀</div>
-                    <div>
-                      <p className="text-lg font-medium">Készen állunk a teljes körű tesztelésre!</p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        Kattintson a "TELJES TESZTELÉSI TERV" gombra a komprehenzív validáció indításához
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              filteredResults.map(result => (
-                <Card key={result.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {getStatusIcon(result.status)}
-                        <div>
-                          <h3 className="font-medium">{result.testName}</h3>
-                          <p className="text-sm text-gray-600">{result.message}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {result.duration && (
-                          <span className="text-xs text-gray-500">
-                            {result.duration}ms
-                          </span>
-                        )}
-                        <Badge 
-                          variant="outline" 
-                          className={getStatusColor(result.status)}
-                        >
-                          {result.status}
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    {result.details && (
-                      <div className="mt-3 p-3 bg-gray-50 rounded text-xs">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          {Object.entries(result.details).map(([key, value]) => (
-                            <div key={key}>
-                              <span className="font-medium text-gray-700">{key}: </span>
-                              <span className="text-gray-600">
-                                {typeof value === 'number' && value < 1 ? 
-                                  (value * 100).toFixed(1) + '%' : 
-                                  String(value)
-                                }
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
+          <TestResultsList results={filteredResults} />
         </TabsContent>
 
         <TabsContent value="data">
