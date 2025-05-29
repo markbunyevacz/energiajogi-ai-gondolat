@@ -41,18 +41,25 @@ serve(async (req) => {
       }
     );
 
-    console.log('Sending request to Claude API...');
+    // Check if Claude API key is available
+    const claudeApiKey = Deno.env.get('CLAUDE_API_KEY');
+    if (!claudeApiKey) {
+      console.error('Claude API key not found in environment variables');
+      throw new Error('Claude API kulcs nincs beállítva - ellenőrizze a Supabase titkos kulcsokat');
+    }
+
+    console.log('Sending request to Claude API with claude-opus-4-20250514 model...');
 
     // Analyze contract using Claude AI with updated model
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('CLAUDE_API_KEY')}`,
+        'Authorization': `Bearer ${claudeApiKey}`,
         'Content-Type': 'application/json',
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-opus-4-20250514',
         max_tokens: 2000,
         messages: [
           {
@@ -95,35 +102,61 @@ Respond only with valid JSON, no additional text.`
     if (!claudeResponse.ok) {
       const errorText = await claudeResponse.text();
       console.error('Claude API error response:', errorText);
-      throw new Error(`Claude API error: ${claudeResponse.status} - ${errorText}`);
+      
+      // Parse error response to provide specific messages
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        console.error('Failed to parse error response:', e);
+      }
+
+      if (claudeResponse.status === 401) {
+        throw new Error('Claude API hitelesítési hiba - ellenőrizze az API kulcs érvényességét');
+      } else if (claudeResponse.status === 429) {
+        throw new Error('Claude API rate limit túllépve - próbálja újra később');
+      } else if (claudeResponse.status === 400) {
+        const errorMsg = errorData?.error?.message || 'Hibás kérés';
+        throw new Error(`Claude API kérés hiba: ${errorMsg}`);
+      } else {
+        throw new Error(`Claude API hiba (${claudeResponse.status}): ${errorData?.error?.message || errorText}`);
+      }
     }
 
     const claudeData = await claudeResponse.json();
-    console.log('Claude API response received');
+    console.log('Claude API response received successfully');
     
     // Safely access the content array
     if (!claudeData.content || !Array.isArray(claudeData.content) || claudeData.content.length === 0) {
       console.error('Invalid Claude response structure:', claudeData);
-      throw new Error('Invalid response from Claude API - no content array');
+      throw new Error('Érvénytelen válasz a Claude API-tól - hiányzó tartalom');
     }
 
     let analysisResult;
     try {
       const jsonContent = claudeData.content[0].text;
-      console.log('Parsing Claude response JSON...');
-      analysisResult = JSON.parse(jsonContent);
+      console.log('Raw Claude response:', jsonContent.substring(0, 200) + '...');
+      
+      // Clean the JSON content - remove any markdown formatting
+      const cleanedContent = jsonContent
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      
+      console.log('Parsing cleaned Claude response...');
+      analysisResult = JSON.parse(cleanedContent);
     } catch (parseError) {
       console.error('JSON parsing error:', parseError);
-      console.error('Raw content:', claudeData.content[0].text);
-      throw new Error('Failed to parse Claude API response as JSON');
+      console.error('Raw content that failed to parse:', claudeData.content[0].text);
+      throw new Error('Claude válasz feldolgozási hiba - érvénytelen JSON formátum');
     }
 
-    console.log('Analysis result parsed successfully');
+    console.log('Analysis result parsed successfully:', analysisResult);
 
     // Validate the parsed result
     if (!analysisResult.riskLevel || !analysisResult.summary) {
       console.error('Invalid analysis result structure:', analysisResult);
-      throw new Error('Analysis result missing required fields');
+      throw new Error('Elemzési eredmény hiányos - hiányzó kötelező mezők');
     }
 
     console.log('Saving analysis to database...');
@@ -143,7 +176,7 @@ Respond only with valid JSON, no additional text.`
 
     if (analysisError) {
       console.error('Database error saving analysis:', analysisError);
-      throw new Error(`Database error: ${analysisError.message}`);
+      throw new Error(`Adatbázis hiba az elemzés mentésekor: ${analysisError.message}`);
     }
 
     console.log('Analysis saved with ID:', analysisData.id);
@@ -167,7 +200,7 @@ Respond only with valid JSON, no additional text.`
 
       if (risksError) {
         console.error('Database error saving risks:', risksError);
-        // Don't throw here, analysis is saved, risks are optional
+        console.warn('Risks could not be saved, but analysis was successful');
       } else {
         console.log('Risks saved successfully');
       }
@@ -191,24 +224,20 @@ Respond only with valid JSON, no additional text.`
   } catch (error) {
     console.error('Error in analyze-contract function:', error);
     
-    // Determine error type for better user feedback
-    let errorMessage = 'Ismeretlen hiba történt az elemzés során';
+    // Provide more specific error messages
+    let errorMessage = error.message;
     
-    if (error.message.includes('Claude API error: 401')) {
-      errorMessage = 'Hiba a Claude API kulccsal - ellenőrizze a beállításokat';
-    } else if (error.message.includes('Claude API error')) {
-      errorMessage = 'Hiba a Claude API kommunikációban';
-    } else if (error.message.includes('Database error')) {
-      errorMessage = 'Adatbázis hiba történt';
-    } else if (error.message.includes('JSON')) {
-      errorMessage = 'Hiba az AI válasz feldolgozásában';
+    // If the error message is generic, provide a more helpful one
+    if (!errorMessage || errorMessage === 'Ismeretlen hiba történt az elemzés során') {
+      errorMessage = 'Váratlan hiba történt a szerződés elemzése során';
     }
     
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: errorMessage,
-        details: error.message 
+        details: error.message,
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,
