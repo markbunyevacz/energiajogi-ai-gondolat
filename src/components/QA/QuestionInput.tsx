@@ -1,99 +1,104 @@
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Send } from 'lucide-react';
+import { Card, CardContent } from "@/components/ui/card";
+import { Send, Loader2 } from 'lucide-react';
+import { aiAgentRouter, AgentContext } from '@/services/aiAgentRouter';
+import { AgentIndicator } from '@/components/AI/AgentIndicator';
+import { useAuth } from '@/hooks/useAuth';
 
 interface QuestionInputProps {
-  onSubmit: (question: string) => Promise<void>;
+  onSubmit: (question: string, agentType?: string) => void;
   isLoading: boolean;
-  results?: {
-    totalResults: number;
-    processingTime: number;
-  } | null;
-  selectedQuestion?: string;
-  onQuestionChange?: (question: string) => void;
+  results?: any;
+  selectedQuestion: string;
+  onQuestionChange: (question: string) => void;
 }
 
 export function QuestionInput({ 
   onSubmit, 
   isLoading, 
-  results, 
-  selectedQuestion = '', 
+  selectedQuestion, 
   onQuestionChange 
 }: QuestionInputProps) {
   const [question, setQuestion] = useState('');
+  const [agentAnalysis, setAgentAnalysis] = useState<any>(null);
+  const { profile } = useAuth();
 
-  // Update the question when a suggested question is selected
-  useEffect(() => {
-    if (selectedQuestion) {
-      setQuestion(selectedQuestion);
-    }
-  }, [selectedQuestion]);
-
-  const handleQuestionChange = (value: string) => {
-    setQuestion(value);
-    if (onQuestionChange) {
-      onQuestionChange(value);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim()) return;
-    
-    await onSubmit(question.trim());
-    setQuestion('');
-    if (onQuestionChange) {
+    const finalQuestion = selectedQuestion || question;
+    if (finalQuestion.trim()) {
+      // Analyze question with AI agent router
+      const context: AgentContext = {
+        previousQuestions: [], // This would come from conversation history
+        documentTypes: [], // This would come from uploaded documents
+        userRole: profile?.role || 'jogász',
+        sessionHistory: []
+      };
+
+      const analysis = aiAgentRouter.analyzeQuestion(finalQuestion, context);
+      setAgentAnalysis(analysis);
+      
+      onSubmit(analysis.suggestedPrompt, analysis.agentType);
+      setQuestion('');
       onQuestionChange('');
     }
   };
 
+  const handleQuestionChange = (value: string) => {
+    setQuestion(value);
+    onQuestionChange(value);
+    
+    // Reset agent analysis when question changes
+    if (agentAnalysis) {
+      setAgentAnalysis(null);
+    }
+  };
+
+  const currentQuestion = selectedQuestion || question;
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <MessageSquare className="w-5 h-5 text-mav-blue" />
-          <span>Jogi Kérdés Feltevése</span>
-          {results && (
-            <Badge variant="outline" className="ml-auto">
-              {results.totalResults} találat | {results.processingTime.toFixed(1)}ms
-            </Badge>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {agentAnalysis && (
+            <AgentIndicator 
+              agentType={agentAnalysis.agentType}
+              confidence={agentAnalysis.confidence}
+              reasoning={agentAnalysis.reasoning}
+            />
+          )}
+          
           <div className="space-y-2">
             <Textarea
-              value={question}
+              value={currentQuestion}
               onChange={(e) => handleQuestionChange(e.target.value)}
-              placeholder="Írja be energiajogi kérdését... (pl. Mi a teendő energiaszolgáltatói szerződésszegés esetén?)"
+              placeholder="Tegye fel kérdését az energiajogi dokumentumokkal kapcsolatban..."
               className="min-h-[100px] resize-none"
               disabled={isLoading}
             />
           </div>
           
           <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-500">
-              {question.length}/1000 karakter
-            </div>
+            <p className="text-sm text-gray-500">
+              Az AI elemzi a kérdést és kiválasztja a megfelelő szakértői ágenst
+            </p>
             <Button 
               type="submit" 
-              disabled={!question.trim() || isLoading}
+              disabled={!currentQuestion.trim() || isLoading}
               className="bg-mav-blue hover:bg-mav-blue-dark"
             >
               {isLoading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  AI feldolgozás...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Feldolgozás...
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4 mr-2" />
-                  Kérdés Elküldése
+                  Kérdés elküldése
                 </>
               )}
             </Button>

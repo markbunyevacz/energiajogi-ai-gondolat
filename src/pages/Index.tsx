@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/Layout/ProtectedRoute";
 import { Header } from "@/components/Layout/Header";
@@ -12,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalyticsTracking } from "@/hooks/useAnalyticsTracking";
 import { useEffect } from "react";
+import { ProactiveRecommendations } from "@/components/AI/ProactiveRecommendations";
 
 const Index = () => {
   const { user, profile } = useAuth();
@@ -65,6 +65,7 @@ const Index = () => {
         tabs: [
           { value: 'qa', label: 'Kérdés-Válasz' },
           { value: 'upload', label: 'Dokumentumok' },
+          { value: 'recommendations', label: 'AI Javaslatok' },
           { value: 'it-dashboard', label: 'IT Dashboard' },
           { value: 'activity', label: 'Aktivitás' }
         ]
@@ -76,6 +77,7 @@ const Index = () => {
       tabs: [
         { value: 'qa', label: 'Kérdés-Válasz' },
         { value: 'upload', label: 'Dokumentumok' },
+        { value: 'recommendations', label: 'AI Javaslatok' },
         { value: 'activity', label: 'Aktivitás' }
       ]
     };
@@ -94,9 +96,9 @@ const Index = () => {
                 Üdvözöljük, {profile?.name || 'Felhasználó'}!
               </h1>
               <p className="text-gray-600 mt-2">
-                {profile?.role === 'jogász' && 'Jogi AI asszisztens - Dokumentumok elemzése és kérdések megválaszolása'}
-                {profile?.role === 'it_vezető' && 'IT vezető dashboard - Rendszer teljesítmény és metrikák'}
-                {profile?.role === 'tulajdonos' && 'Tulajdonos áttekintés - Business metrikák és ROI'}
+                {profile?.role === 'jogász' && 'Jogi AI asszisztens - Intelligens ágensek és proaktív javaslatok'}
+                {profile?.role === 'it_vezető' && 'IT vezető dashboard - Rendszer teljesítmény és AI metrikák'}
+                {profile?.role === 'tulajdonos' && 'Tulajdonos áttekintés - Business metrikák és AI ROI'}
               </p>
             </div>
 
@@ -110,9 +112,9 @@ const Index = () => {
 
             {/* Main Content Tabs */}
             <Tabs defaultValue={tabConfig.defaultTab} className="space-y-6">
-              <TabsList className={`grid w-full max-w-md ${tabConfig.tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+              <TabsList className={`grid w-full max-w-2xl ${tabConfig.tabs.length === 5 ? 'grid-cols-5' : 'grid-cols-4'}`}>
                 {tabConfig.tabs.map(tab => (
-                  <TabsTrigger key={tab.value} value={tab.value}>
+                  <TabsTrigger key={tab.value} value={tab.value} className="text-sm">
                     {tab.label}
                   </TabsTrigger>
                 ))}
@@ -124,6 +126,10 @@ const Index = () => {
 
               <TabsContent value="upload" className="space-y-6">
                 <DocumentUpload />
+              </TabsContent>
+
+              <TabsContent value="recommendations" className="space-y-6">
+                <ProactiveRecommendations />
               </TabsContent>
 
               {(profile?.role === 'it_vezető' || profile?.role === 'tulajdonos') && (

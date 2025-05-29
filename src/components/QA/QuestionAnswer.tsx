@@ -7,7 +7,6 @@ import { optimizedDocumentService } from '@/services/optimizedDocumentService';
 import { toast } from 'sonner';
 import { QuestionInput } from './QuestionInput';
 import { SuggestedQuestions } from './SuggestedQuestions';
-import { LegalSourcesWidget } from './LegalSourcesWidget';
 import { QAHistory } from './QAHistory';
 
 interface QASession {
@@ -95,18 +94,13 @@ export function QuestionAnswer() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start gap-6">
-        <div className="flex-1">
-          <QuestionInput 
-            onSubmit={handleQuestionSubmit}
-            isLoading={isLoading}
-            results={results}
-            selectedQuestion={selectedQuestion}
-            onQuestionChange={setSelectedQuestion}
-          />
-        </div>
-        <LegalSourcesWidget />
-      </div>
+      <QuestionInput 
+        onSubmit={handleQuestionSubmit}
+        isLoading={isLoading}
+        results={results}
+        selectedQuestion={selectedQuestion}
+        onQuestionChange={setSelectedQuestion}
+      />
 
       <SuggestedQuestions 
         onQuestionSelect={handleQuestionSelect}
