@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/hooks/useAuth";
 import { ContractAnalysis } from '@/types';
@@ -91,7 +90,12 @@ export function useContractAnalysis() {
       }
 
       console.log('Fetched contracts:', data);
-      setAvailableContracts(data || []);
+      // Type cast the analysis_status to ensure it matches our union type
+      const typedContracts = (data || []).map(doc => ({
+        ...doc,
+        analysis_status: (doc.analysis_status || 'not_analyzed') as 'not_analyzed' | 'analyzing' | 'completed' | 'failed'
+      }));
+      setAvailableContracts(typedContracts);
     } catch (error) {
       console.error('Error fetching available contracts:', error);
       toast.error('Hiba a szerződések betöltésekor');

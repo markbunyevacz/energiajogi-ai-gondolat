@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -31,8 +30,8 @@ interface StoredDocument {
   upload_date: string;
   file_path: string;
   content: string | null;
-  analysis_status?: 'not_analyzed' | 'analyzing' | 'completed' | 'failed';
-  analysis_error?: string | null;
+  analysis_status: 'not_analyzed' | 'analyzing' | 'completed' | 'failed';
+  analysis_error: string | null;
 }
 
 export function DocumentUpload() {
@@ -61,7 +60,12 @@ export function DocumentUpload() {
     if (error) {
       console.error('Error fetching documents:', error);
     } else {
-      setStoredDocuments(data || []);
+      // Type cast the analysis_status to ensure it matches our union type
+      const typedDocuments = (data || []).map(doc => ({
+        ...doc,
+        analysis_status: (doc.analysis_status || 'not_analyzed') as 'not_analyzed' | 'analyzing' | 'completed' | 'failed'
+      }));
+      setStoredDocuments(typedDocuments);
     }
   };
 
