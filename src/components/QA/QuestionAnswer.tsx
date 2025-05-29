@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedSearch } from '@/hooks/useOptimizedSearch';
 import { optimizedDocumentService } from '@/services/optimizedDocumentService';
+import { officialSourceService } from '@/services/officialSourceService';
 import { toast } from 'sonner';
 
 interface QASession {
@@ -37,12 +38,7 @@ export function QuestionAnswer() {
     'Hogyan lehet panaszt tenni az energiaszolgáltató ellen?'
   ];
 
-  const legalSources = [
-    { name: 'Magyar Közlöny', url: 'https://magyarkozlony.hu/', description: 'Hivatalos lap' },
-    { name: 'Nemzeti Jogszabálytár', url: 'https://net.jogtar.hu/', description: 'Jogszabályok' },
-    { name: 'MEKH', url: 'https://mekh.hu/', description: 'Energetikai hatóság' },
-    { name: 'EUR-Lex', url: 'https://eur-lex.europa.eu/homepage.html', description: 'EU jogszabályok' }
-  ];
+  const legalSources = officialSourceService.getAllSources();
 
   useEffect(() => {
     if (user) {
@@ -143,6 +139,35 @@ export function QuestionAnswer() {
     return 'Alacsony megbízhatóság';
   };
 
+  const renderAnswerWithLinks = (answer: string): JSX.Element => {
+    // Detect and link official sources
+    const detectedSources = officialSourceService.detectSourcesInText(answer);
+    let linkedAnswer = answer;
+    
+    // Replace detected sources with links
+    detectedSources.forEach(({ source, matches }) => {
+      matches.forEach(match => {
+        const linkRegex = new RegExp(`\\b${match.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+        linkedAnswer = linkedAnswer.replace(linkRegex, (matchedText) => {
+          return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline inline-flex items-center">${matchedText}<svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a>`;
+        });
+      });
+    });
+
+    // Also link any existing URLs
+    const urlRegex = /(https?:\/\/[^\s\)]+)/g;
+    linkedAnswer = linkedAnswer.replace(urlRegex, (url) => {
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline inline-flex items-center">${url}<svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a>`;
+    });
+
+    return (
+      <div 
+        className="prose prose-sm max-w-none"
+        dangerouslySetInnerHTML={{ __html: linkedAnswer }}
+      />
+    );
+  };
+
   const isUrl = (text: string): boolean => {
     return text.includes('http://') || text.includes('https://');
   };
@@ -235,6 +260,7 @@ export function QuestionAnswer() {
                 <div>
                   <div className="font-medium text-sm">{source.name}</div>
                   <div className="text-xs text-gray-500">{source.description}</div>
+                  <div className="text-xs text-gray-400 capitalize">{source.category}</div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-mav-blue transition-colors" />
               </a>
@@ -299,12 +325,10 @@ export function QuestionAnswer() {
 
                   <Separator />
 
-                  {/* Answer */}
+                  {/* Answer with enhanced linking */}
                   <div className="space-y-2">
                     <h3 className="font-medium text-gray-900">AI Válasz:</h3>
-                    <div className="prose prose-sm max-w-none">
-                      <p className="text-gray-700 whitespace-pre-line">{session.answer}</p>
-                    </div>
+                    {renderAnswerWithLinks(session.answer)}
                   </div>
 
                   {/* Sources */}
