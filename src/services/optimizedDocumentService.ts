@@ -9,6 +9,7 @@ interface DocumentChunk {
   chunk_text: string;
   chunk_index: number;
   embedding?: number[];
+  similarity?: number;
 }
 
 interface SearchRequest {
@@ -21,6 +22,7 @@ interface SearchResult {
   chunks: DocumentChunk[];
   totalResults: number;
   processingTime: number;
+  avgSimilarity?: number;
 }
 
 class OptimizedDocumentService {
@@ -71,24 +73,17 @@ class OptimizedDocumentService {
 
     for (const request of requests) {
       try {
-        const { data, error } = await supabase
-          .from('document_chunks')
-          .select(`
-            id,
-            document_id,
-            chunk_text,
-            chunk_index,
-            documents!inner(title)
-          `)
-          .ilike('chunk_text', `%${request.query}%`)
-          .eq(request.documentId ? 'document_id' : 'id', request.documentId || 'id')
-          .limit(request.limit || 10);
-
-        if (error) throw error;
+        // First try vector search with embeddings
+        let searchResult = await this.performVectorSearch(request);
+        
+        // If no vector results, fallback to text search
+        if (!searchResult.chunks.length) {
+          console.log('No vector results, falling back to text search');
+          searchResult = await this.performTextSearch(request);
+        }
 
         results.push({
-          chunks: data || [],
-          totalResults: data?.length || 0,
+          ...searchResult,
           processingTime: performance.now() - startTime
         });
       } catch (error) {
@@ -102,6 +97,71 @@ class OptimizedDocumentService {
     }
 
     return results;
+  }
+
+  private async performVectorSearch(request: SearchRequest): Promise<Omit<SearchResult, 'processingTime'>> {
+    try {
+      // Generate embedding for the query
+      const queryEmbedding = await this.generateEmbedding(request.query);
+      
+      // Use the search_documents RPC function for vector similarity search
+      const { data, error } = await supabase.rpc('search_documents', {
+        query_embedding: queryEmbedding,
+        match_threshold: 0.5, // Lowered threshold for better results
+        match_count: request.limit || 10,
+        doc_id: request.documentId || null
+      });
+
+      if (error) {
+        console.error('Vector search error:', error);
+        throw error;
+      }
+
+      const chunks = (data || []).map((item: any) => ({
+        ...item,
+        similarity: item.similarity || 0
+      }));
+
+      const avgSimilarity = chunks.length > 0 
+        ? chunks.reduce((sum, chunk) => sum + (chunk.similarity || 0), 0) / chunks.length 
+        : 0;
+
+      return {
+        chunks,
+        totalResults: chunks.length,
+        avgSimilarity
+      };
+    } catch (error) {
+      console.error('Vector search failed:', error);
+      throw error;
+    }
+  }
+
+  private async performTextSearch(request: SearchRequest): Promise<Omit<SearchResult, 'processingTime'>> {
+    let query = supabase
+      .from('document_chunks')
+      .select(`
+        id,
+        document_id,
+        chunk_text,
+        chunk_index,
+        documents!inner(title)
+      `)
+      .ilike('chunk_text', `%${request.query}%`)
+      .limit(request.limit || 10);
+
+    if (request.documentId) {
+      query = query.eq('document_id', request.documentId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return {
+      chunks: data || [],
+      totalResults: data?.length || 0
+    };
   }
 
   async generateEmbedding(text: string): Promise<number[]> {
@@ -147,6 +207,36 @@ class OptimizedDocumentService {
       // Return empty embeddings as fallback
       return texts.map(() => []);
     }
+  }
+
+  // Calculate confidence score based on search results and similarity
+  calculateConfidence(searchResults: SearchResult, sources: string[]): number {
+    if (!searchResults.chunks.length) {
+      return 30; // Low confidence when no relevant documents found
+    }
+
+    let confidence = 40; // Base confidence
+
+    // Factor 1: Average similarity score (40% weight)
+    if (searchResults.avgSimilarity) {
+      confidence += Math.min(searchResults.avgSimilarity * 40, 40);
+    }
+
+    // Factor 2: Number of sources (20% weight)
+    const sourceBonus = Math.min(sources.length * 5, 20);
+    confidence += sourceBonus;
+
+    // Factor 3: Quality of sources (bonus for official sources)
+    const officialSourceBonus = sources.filter(source => 
+      source.includes('jogtar.hu') || 
+      source.includes('eur-lex.europa.eu') || 
+      source.includes('mekh.hu') ||
+      source.includes('magyarkozlony.hu')
+    ).length * 3;
+    
+    confidence = Math.min(confidence + officialSourceBonus, 95);
+    
+    return Math.max(confidence, 30); // Minimum 30% confidence
   }
 
   async preloadDocumentChunks(documentIds: string[]): Promise<void> {

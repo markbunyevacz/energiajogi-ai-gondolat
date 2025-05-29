@@ -6,9 +6,8 @@ import { DashboardStatsComponent } from "@/components/Dashboard/DashboardStats";
 import { RecentActivity } from "@/components/Dashboard/RecentActivity";
 import { QuestionAnswer } from "@/components/QA/QuestionAnswer";
 import { DocumentUpload } from "@/components/Documents/DocumentUpload";
-import { RealTimeDashboard } from "@/components/Analytics/RealTimeDashboard";
+import { ITDashboard } from "@/components/Dashboard/ITDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalyticsTracking } from "@/hooks/useAnalyticsTracking";
@@ -56,6 +55,34 @@ const Index = () => {
     enabled: !!user
   });
 
+  // Determine tab configuration based on user role
+  const getTabConfig = () => {
+    const isITOrOwner = profile?.role === 'it_vezető' || profile?.role === 'tulajdonos';
+    
+    if (isITOrOwner) {
+      return {
+        defaultTab: 'qa',
+        tabs: [
+          { value: 'qa', label: 'Kérdés-Válasz' },
+          { value: 'upload', label: 'Dokumentumok' },
+          { value: 'it-dashboard', label: 'IT Dashboard' },
+          { value: 'activity', label: 'Aktivitás' }
+        ]
+      };
+    }
+    
+    return {
+      defaultTab: 'qa',
+      tabs: [
+        { value: 'qa', label: 'Kérdés-Válasz' },
+        { value: 'upload', label: 'Dokumentumok' },
+        { value: 'activity', label: 'Aktivitás' }
+      ]
+    };
+  };
+
+  const tabConfig = getTabConfig();
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
@@ -81,24 +108,14 @@ const Index = () => {
               />
             )}
 
-            {/* Real-time Analytics for IT Leaders and Owners */}
-            {(profile?.role === 'it_vezető' || profile?.role === 'tulajdonos') && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Valós Idejű Analytics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <RealTimeDashboard />
-                </CardContent>
-              </Card>
-            )}
-
             {/* Main Content Tabs */}
-            <Tabs defaultValue="qa" className="space-y-6">
-              <TabsList className="grid grid-cols-3 w-full max-w-md">
-                <TabsTrigger value="qa">Kérdés-Válasz</TabsTrigger>
-                <TabsTrigger value="upload">Dokumentumok</TabsTrigger>
-                <TabsTrigger value="activity">Aktivitás</TabsTrigger>
+            <Tabs defaultValue={tabConfig.defaultTab} className="space-y-6">
+              <TabsList className={`grid w-full max-w-md ${tabConfig.tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                {tabConfig.tabs.map(tab => (
+                  <TabsTrigger key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
               </TabsList>
 
               <TabsContent value="qa" className="space-y-6">
@@ -108,6 +125,12 @@ const Index = () => {
               <TabsContent value="upload" className="space-y-6">
                 <DocumentUpload />
               </TabsContent>
+
+              {(profile?.role === 'it_vezető' || profile?.role === 'tulajdonos') && (
+                <TabsContent value="it-dashboard" className="space-y-6">
+                  <ITDashboard role={profile?.role || 'jogász'} />
+                </TabsContent>
+              )}
 
               <TabsContent value="activity" className="space-y-6">
                 <RecentActivity role={profile?.role || 'jogász'} />

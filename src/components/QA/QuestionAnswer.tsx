@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { MessageSquare, Send, Book, Clock, ThumbsUp, ThumbsDown, Copy, ExternalL
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedSearch } from '@/hooks/useOptimizedSearch';
-import { PerformanceMetrics } from '@/components/Performance/PerformanceMetrics';
+import { optimizedDocumentService } from '@/services/optimizedDocumentService';
 import { toast } from 'sonner';
 
 interface QASession {
@@ -25,7 +26,7 @@ export function QuestionAnswer() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessions, setSessions] = useState<QASession[]>([]);
   const { user } = useAuth();
-  const { search, results, performanceStats } = useOptimizedSearch(false);
+  const { search, results } = useOptimizedSearch(false);
 
   const suggestedQuestions = [
     'Milyen feltételekkel lehet energiaszerződést módosítani?',
@@ -76,12 +77,18 @@ export function QuestionAnswer() {
       // Use optimized search first
       await search(question);
       
-      // Call the AI Q&A edge function
+      // Calculate confidence based on search results
+      const searchResults = results || { chunks: [], totalResults: 0, processingTime: 0 };
+      const sources = searchResults.chunks.map(chunk => `Dokumentum ${chunk.document_id}`);
+      const confidence = optimizedDocumentService.calculateConfidence(searchResults, sources);
+
+      // Call the AI Q&A edge function with improved context
       const { data, error } = await supabase.functions.invoke('ai-question-answer', {
         body: {
           question: question.trim(),
           userId: user.id,
-          searchResults: results?.chunks || []
+          searchResults: searchResults.chunks || [],
+          confidence: confidence
         },
       });
 
@@ -124,6 +131,18 @@ export function QuestionAnswer() {
     }
   };
 
+  const getConfidenceColor = (confidence: number): string => {
+    if (confidence >= 80) return 'bg-green-100 text-green-800';
+    if (confidence >= 60) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
+  const getConfidenceLabel = (confidence: number): string => {
+    if (confidence >= 80) return 'Magas megbízhatóság';
+    if (confidence >= 60) return 'Közepes megbízhatóság';
+    return 'Alacsony megbízhatóság';
+  };
+
   const isUrl = (text: string): boolean => {
     return text.includes('http://') || text.includes('https://');
   };
@@ -142,9 +161,6 @@ export function QuestionAnswer() {
 
   return (
     <div className="space-y-6">
-      {/* Performance Metrics */}
-      <PerformanceMetrics />
-      
       <div className="flex justify-between items-start gap-6">
         <div className="flex-1">
           {/* Question Input */}
@@ -153,9 +169,9 @@ export function QuestionAnswer() {
               <CardTitle className="flex items-center space-x-2">
                 <MessageSquare className="w-5 h-5 text-mav-blue" />
                 <span>Jogi Kérdés Feltevése</span>
-                {performanceStats && (
+                {results && (
                   <Badge variant="outline" className="ml-auto">
-                    Cache: {performanceStats.cache.hitRate.toFixed(0)}%
+                    {results.totalResults} találat | {results.processingTime.toFixed(1)}ms
                   </Badge>
                 )}
               </CardTitle>
@@ -170,11 +186,6 @@ export function QuestionAnswer() {
                     className="min-h-[100px] resize-none"
                     disabled={isLoading}
                   />
-                  {results && (
-                    <div className="text-xs text-gray-500">
-                      Találatok: {results.totalResults} | Feldolgozási idő: {results.processingTime.toFixed(1)}ms
-                    </div>
-                  )}
                 </div>
                 
                 <div className="flex justify-between items-center">
@@ -278,12 +289,8 @@ export function QuestionAnswer() {
                           <Clock className="w-3 h-3 mr-1" />
                           {formatTimestamp(session.created_at)}
                         </Badge>
-                        <Badge variant="secondary" className={`${
-                          session.confidence > 90 ? 'bg-green-100 text-green-800' :
-                          session.confidence > 80 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {session.confidence}% megbízhatóság
+                        <Badge variant="secondary" className={getConfidenceColor(session.confidence)}>
+                          {session.confidence}% - {getConfidenceLabel(session.confidence)}
                         </Badge>
                       </div>
                     </div>
