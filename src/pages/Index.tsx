@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/Layout/ProtectedRoute";
 import { Header } from "@/components/Layout/Header";
@@ -11,28 +12,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalyticsTracking } from "@/hooks/useAnalyticsTracking";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { ProactiveRecommendations } from "@/components/AI/ProactiveRecommendations";
-import { toast } from "sonner";
 
 const Index = () => {
   const { user, profile } = useAuth();
   const { trackPageView } = useAnalyticsTracking();
-  const navigate = useNavigate();
 
   useEffect(() => {
     trackPageView('/');
   }, [trackPageView]);
-
-  // Auto-redirect to testing page for IT leads and owners
-  useEffect(() => {
-    if (profile && (profile.role === 'it_vezető' || profile.role === 'tulajdonos')) {
-      toast.success('🚀 Átirányítás a tesztelési dashboardra...');
-      setTimeout(() => {
-        navigate('/testing');
-      }, 1000);
-    }
-  }, [profile, navigate]);
 
   // Fetch dashboard stats
   const { data: stats } = useQuery({
@@ -110,8 +98,8 @@ const Index = () => {
               </h1>
               <p className="text-gray-600 mt-2">
                 {profile?.role === 'jogász' && 'Jogi AI asszisztens - Intelligens ágensek és proaktív javaslatok'}
-                {profile?.role === 'it_vezető' && 'IT vezető dashboard - Átirányítás a tesztelési oldalra...'}
-                {profile?.role === 'tulajdonos' && 'Tulajdonos áttekintés - Átirányítás a tesztelési oldalra...'}
+                {profile?.role === 'it_vezető' && 'IT vezető dashboard - Rendszer monitoring és teljesítmény követés'}
+                {profile?.role === 'tulajdonos' && 'Tulajdonos áttekintés - Üzleti metrikák és rendszer állapot'}
               </p>
             </div>
 
