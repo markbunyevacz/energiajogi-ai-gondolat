@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedSearch } from '@/hooks/useOptimizedSearch';
 import { optimizedDocumentService } from '@/services/optimizedDocumentService';
-import { officialSourceService } from '@/services/officialSourceService';
+import { OfficialSourceService } from '@/services/officialSourceService';
 import { toast } from 'sonner';
 
 interface QASession {
@@ -38,7 +37,7 @@ export function QuestionAnswer() {
     'Hogyan lehet panaszt tenni az energiaszolgáltató ellen?'
   ];
 
-  const legalSources = officialSourceService.getAllSources();
+  const legalSources = OfficialSourceService.getAllSources();
 
   useEffect(() => {
     if (user) {
@@ -141,7 +140,7 @@ export function QuestionAnswer() {
 
   const renderAnswerWithLinks = (answer: string): JSX.Element => {
     // Detect and link official sources
-    const detectedSources = officialSourceService.detectSourcesInText(answer);
+    const detectedSources = OfficialSourceService.detectSourcesInText(answer);
     let linkedAnswer = answer;
     
     // Replace detected sources with links
