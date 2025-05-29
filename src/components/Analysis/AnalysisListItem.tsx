@@ -40,6 +40,10 @@ export function AnalysisListItem({ analysis, onSelect, onExport }: AnalysisListI
     }
   };
 
+  const getContractDisplayName = () => {
+    return `Szerződés ${analysis.contractId || analysis.id}`;
+  };
+
   const handleExport = () => {
     console.log('Exporting analysis:', analysis.id);
     onExport(analysis);
