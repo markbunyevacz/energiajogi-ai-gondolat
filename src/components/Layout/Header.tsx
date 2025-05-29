@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -14,11 +13,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { LogOut, User, Settings, Brain, Home } from 'lucide-react';
 
 export function Header() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await signOut();
+    await logout();
     navigate('/auth');
   };
 
