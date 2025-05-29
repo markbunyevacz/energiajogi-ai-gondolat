@@ -22,10 +22,11 @@ export const filterAnalyses = (
   searchTerm: string, 
   filterRisk: string
 ): ContractAnalysis[] => {
-  let filtered = analyses.filter(analysis => 
-    analysis.contractId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    analysis.summary.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  let filtered = analyses.filter(analysis => {
+    const contractIdMatch = analysis.contractId?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+    const summaryMatch = analysis.summary?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+    return contractIdMatch || summaryMatch;
+  });
 
   if (filterRisk !== 'all') {
     filtered = filtered.filter(analysis => analysis.riskLevel === filterRisk);
