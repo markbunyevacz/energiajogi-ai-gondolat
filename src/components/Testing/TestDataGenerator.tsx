@@ -6,14 +6,21 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Database, Users, FileText, MessageSquare, BarChart3 } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from 'sonner';
 
 export function TestDataGenerator() {
+  const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generatedData, setGeneratedData] = useState<any>({});
 
   const generateTestData = async () => {
+    if (!user) {
+      toast.error('Nincs bejelentkezett felhasználó');
+      return;
+    }
+
     setIsGenerating(true);
     setProgress(0);
     
@@ -62,19 +69,19 @@ export function TestDataGenerator() {
     const documents = [
       {
         title: 'Munkaszerződés minta',
-        type: 'legal_document',
+        type: 'szerződés' as const,
         content: 'Ez egy teszt munkaszerződés tartalom...',
         metadata: { category: 'employment', language: 'hu' }
       },
       {
         title: 'Adatvédelmi tájékoztató',
-        type: 'legal_document', 
+        type: 'szabályzat' as const, 
         content: 'GDPR megfelelő adatvédelmi tájékoztató...',
         metadata: { category: 'privacy', language: 'hu' }
       },
       {
         title: 'Bérleti szerződés',
-        type: 'contract',
+        type: 'szerződés' as const,
         content: 'Ingatlan bérleti szerződés feltételei...',
         metadata: { category: 'real_estate', language: 'hu' }
       }
@@ -89,27 +96,32 @@ export function TestDataGenerator() {
   };
 
   const generateQASessions = async () => {
+    if (!user) return [];
+
     const sessions = [
       {
         question: 'Mi a különbség a munkavállaló és a vállalkozó között?',
         answer: 'A munkavállaló személyesen, munkáltató irányítása alatt dolgozik...',
         agent_type: 'legal_research',
         confidence: 85,
-        sources: ['Munka Törvénykönyve', 'Ptk.']
+        sources: ['Munka Törvénykönyve', 'Ptk.'],
+        user_id: user.id
       },
       {
         question: 'Hogyan kell GDPR-osan kezelni a személyes adatokat?',
         answer: 'A GDPR szerint a személyes adatok kezelése...',
         agent_type: 'compliance',
         confidence: 92,
-        sources: ['GDPR', 'Infotv.']
+        sources: ['GDPR', 'Infotv.'],
+        user_id: user.id
       },
       {
         question: 'Milyen szerződéses kockázatok lehetnek egy IT projektben?',
         answer: 'IT projektek során gyakori kockázatok...',
         agent_type: 'contract',
         confidence: 88,
-        sources: ['IT szerződések bevált gyakorlata']
+        sources: ['IT szerződések bevált gyakorlata'],
+        user_id: user.id
       }
     ];
 
@@ -125,12 +137,12 @@ export function TestDataGenerator() {
     const analyses = [
       {
         summary: 'Munkszerződés elemzés - alacsony kockázat',
-        risk_level: 'low',
+        risk_level: 'low' as const,
         recommendations: ['Próbaidő pontosítása', 'Felmondási feltételek']
       },
       {
         summary: 'Szállítási szerződés - közepes kockázat',
-        risk_level: 'medium', 
+        risk_level: 'medium' as const, 
         recommendations: ['Kártérítési felső határ', 'Vis maior kikötés']
       }
     ];
