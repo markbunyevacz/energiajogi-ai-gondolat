@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/hooks/useAuth";
 import { ContractAnalysis } from '@/types';
@@ -13,6 +12,8 @@ interface StoredDocument {
   file_size: number;
   upload_date: string;
   content: string | null;
+  analysis_status: 'not_analyzed' | 'analyzing' | 'completed' | 'failed';
+  analysis_error: string | null;
 }
 
 export function useContractAnalysis() {
@@ -78,7 +79,7 @@ export function useContractAnalysis() {
       
       const { data, error } = await supabase
         .from('documents')
-        .select('id, title, type, file_size, upload_date, content')
+        .select('id, title, type, file_size, upload_date, content, analysis_status, analysis_error')
         .eq('type', 'szerződés')
         .eq('uploaded_by', user.id)
         .order('upload_date', { ascending: false });
@@ -94,6 +95,36 @@ export function useContractAnalysis() {
     } catch (error) {
       console.error('Error fetching available contracts:', error);
       toast.error('Hiba a szerződések betöltésekor');
+    }
+  };
+
+  const updateDocumentAnalysisStatus = async (
+    documentId: string, 
+    status: StoredDocument['analysis_status'], 
+    error?: string
+  ) => {
+    try {
+      const { error: updateError } = await supabase
+        .from('documents')
+        .update({ 
+          analysis_status: status,
+          analysis_error: error || null
+        })
+        .eq('id', documentId);
+
+      if (updateError) {
+        console.error('Error updating document status:', updateError);
+        return;
+      }
+
+      // Update local state
+      setAvailableContracts(prev => prev.map(doc => 
+        doc.id === documentId 
+          ? { ...doc, analysis_status: status, analysis_error: error || null }
+          : doc
+      ));
+    } catch (error) {
+      console.error('Error updating document analysis status:', error);
     }
   };
 
@@ -116,6 +147,7 @@ export function useContractAnalysis() {
           file_size: file.size,
           uploaded_by: user.id,
           content: content,
+          analysis_status: 'not_analyzed',
           metadata: {
             source: 'Szerződéselemzés oldal feltöltés',
             keywords: ['szerződés', 'elemzés']
@@ -139,7 +171,9 @@ export function useContractAnalysis() {
         type: documentData.type,
         file_size: documentData.file_size || 0,
         upload_date: documentData.upload_date || documentData.created_at,
-        content: documentData.content
+        content: documentData.content,
+        analysis_status: 'not_analyzed',
+        analysis_error: null
       });
 
       // Refresh the contracts list to show the new document
@@ -159,6 +193,9 @@ export function useContractAnalysis() {
 
     try {
       console.log('Starting contract analysis for document:', document.id);
+      
+      // Set status to analyzing
+      await updateDocumentAnalysisStatus(document.id, 'analyzing');
       toast.info('Szerződés elemzése folyamatban...');
 
       const { data, error } = await supabase.functions.invoke('analyze-contract', {
@@ -171,6 +208,7 @@ export function useContractAnalysis() {
 
       if (error) {
         console.error('Function invoke error:', error);
+        await updateDocumentAnalysisStatus(document.id, 'failed', 'Kapcsolódási probléma');
         toast.error('Hiba a szerződés elemzésekor: Kapcsolódási probléma');
         return;
       }
@@ -178,12 +216,14 @@ export function useContractAnalysis() {
       console.log('Analysis response:', data);
 
       if (data?.success) {
+        await updateDocumentAnalysisStatus(document.id, 'completed');
         toast.success('Szerződés elemzése sikeresen befejezve');
         // Immediately refresh the analyses list
         await fetchAnalyses();
       } else {
         console.error('Analysis failed:', data);
         const errorMessage = data?.error || 'Ismeretlen hiba történt az elemzés során';
+        await updateDocumentAnalysisStatus(document.id, 'failed', errorMessage);
         toast.error(`Elemzési hiba: ${errorMessage}`);
         
         // Log additional details for debugging
@@ -193,6 +233,7 @@ export function useContractAnalysis() {
       }
     } catch (error) {
       console.error('Analysis error:', error);
+      await updateDocumentAnalysisStatus(document.id, 'failed', 'Kapcsolódási probléma');
       toast.error('Hiba a szerződés elemzésekor: Kapcsolódási probléma');
     }
   };
@@ -214,4 +255,3 @@ export function useContractAnalysis() {
     fetchAvailableContracts
   };
 }
-

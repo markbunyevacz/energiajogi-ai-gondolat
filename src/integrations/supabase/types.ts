@@ -154,6 +154,8 @@ export type Database = {
       }
       documents: {
         Row: {
+          analysis_error: string | null
+          analysis_status: string | null
           content: string | null
           created_at: string | null
           file_path: string | null
@@ -168,6 +170,8 @@ export type Database = {
           vector_id: string | null
         }
         Insert: {
+          analysis_error?: string | null
+          analysis_status?: string | null
           content?: string | null
           created_at?: string | null
           file_path?: string | null
@@ -182,6 +186,8 @@ export type Database = {
           vector_id?: string | null
         }
         Update: {
+          analysis_error?: string | null
+          analysis_status?: string | null
           content?: string | null
           created_at?: string | null
           file_path?: string | null

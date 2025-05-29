@@ -18,6 +18,8 @@ export interface Document {
   uploadDate: string;
   size: number;
   vectorId?: string;
+  analysis_status?: 'not_analyzed' | 'analyzing' | 'completed' | 'failed';
+  analysis_error?: string;
 }
 
 export type DocumentType = 'szerződés' | 'rendelet' | 'szabályzat' | 'törvény' | 'határozat' | 'egyéb';

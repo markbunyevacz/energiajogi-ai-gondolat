@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Brain } from 'lucide-react';
+import { FileText, Brain, Eye, AlertCircle, RefreshCw, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -13,6 +13,8 @@ interface StoredDocument {
   file_size: number;
   upload_date: string;
   content: string | null;
+  analysis_status: 'not_analyzed' | 'analyzing' | 'completed' | 'failed';
+  analysis_error: string | null;
 }
 
 interface ContractsListProps {
@@ -29,6 +31,84 @@ export function ContractsList({ contracts, onAnalyzeContract }: ContractsListPro
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getStatusBadge = (status: StoredDocument['analysis_status']) => {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-800">Elemzett</Badge>;
+      case 'analyzing':
+        return <Badge className="bg-yellow-100 text-yellow-800">Elemzés folyamatban</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Hiba történt</Badge>;
+      default:
+        return <Badge variant="outline">Nem elemzett</Badge>;
+    }
+  };
+
+  const getActionButton = (doc: StoredDocument) => {
+    const isAnalyzing = analyzingId === doc.id || doc.analysis_status === 'analyzing';
+    
+    if (!doc.content) {
+      return (
+        <Button size="sm" disabled variant="outline">
+          <AlertCircle className="w-4 h-4 mr-1" />
+          Tartalom hiányzik
+        </Button>
+      );
+    }
+
+    switch (doc.analysis_status) {
+      case 'completed':
+        return (
+          <Button
+            size="sm"
+            onClick={() => {
+              // Navigate to analysis results - this would need to be implemented
+              toast.info('Elemzési eredmények megtekintése - hamarosan elérhető');
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Eye className="w-4 h-4 mr-1" />
+            Eredmény Megtekintése
+          </Button>
+        );
+      
+      case 'analyzing':
+        return (
+          <Button size="sm" disabled className="bg-yellow-600 text-white">
+            <Clock className="w-4 h-4 mr-1" />
+            Elemzés folyamatban...
+          </Button>
+        );
+      
+      case 'failed':
+        return (
+          <Button
+            size="sm"
+            onClick={() => handleAnalyze(doc)}
+            disabled={isAnalyzing}
+            variant="outline"
+            className="border-red-200 text-red-700 hover:bg-red-50"
+          >
+            <RefreshCw className="w-4 h-4 mr-1" />
+            {isAnalyzing ? 'Elemzés...' : 'Újra Elemzés'}
+          </Button>
+        );
+      
+      default:
+        return (
+          <Button
+            size="sm"
+            onClick={() => handleAnalyze(doc)}
+            disabled={isAnalyzing}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            <Brain className="w-4 h-4 mr-1" />
+            {isAnalyzing ? 'Elemzés...' : 'Elemzés Indítása'}
+          </Button>
+        );
+    }
   };
 
   const handleAnalyze = async (doc: StoredDocument) => {
@@ -81,16 +161,8 @@ export function ContractsList({ contracts, onAnalyzeContract }: ContractsListPro
                       {doc.title}
                     </p>
                     <div className="flex items-center space-x-2">
-                      <Badge variant="outline">Szerződés</Badge>
-                      <Button
-                        size="sm"
-                        onClick={() => handleAnalyze(doc)}
-                        disabled={analyzingId === doc.id || !doc.content}
-                        className="bg-purple-600 hover:bg-purple-700 text-white disabled:bg-gray-400"
-                      >
-                        <Brain className="w-4 h-4 mr-1" />
-                        {analyzingId === doc.id ? 'Elemzés...' : 'Elemzés Indítása'}
-                      </Button>
+                      {getStatusBadge(doc.analysis_status)}
+                      {getActionButton(doc)}
                     </div>
                   </div>
                   
@@ -98,6 +170,16 @@ export function ContractsList({ contracts, onAnalyzeContract }: ContractsListPro
                     <span>{formatFileSize(doc.file_size)}</span>
                     <span>{new Date(doc.upload_date).toLocaleDateString('hu-HU')}</span>
                   </div>
+
+                  {doc.analysis_status === 'failed' && doc.analysis_error && (
+                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                      <div className="flex items-center space-x-1">
+                        <AlertCircle className="w-4 h-4" />
+                        <span className="font-medium">Hiba:</span>
+                      </div>
+                      <p className="mt-1">{doc.analysis_error}</p>
+                    </div>
+                  )}
 
                   {!doc.content && (
                     <p className="text-xs text-red-500 mt-1">

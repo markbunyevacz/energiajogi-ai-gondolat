@@ -31,6 +31,8 @@ interface StoredDocument {
   upload_date: string;
   file_path: string;
   content: string | null;
+  analysis_status?: 'not_analyzed' | 'analyzing' | 'completed' | 'failed';
+  analysis_error?: string | null;
 }
 
 export function DocumentUpload() {
@@ -53,7 +55,7 @@ export function DocumentUpload() {
 
     const { data, error } = await supabase
       .from('documents')
-      .select('id, title, type, file_size, upload_date, file_path, content')
+      .select('id, title, type, file_size, upload_date, file_path, content, analysis_status, analysis_error')
       .order('upload_date', { ascending: false });
 
     if (error) {
