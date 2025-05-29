@@ -11,3 +11,9 @@ export { TestProgressCard } from './TestProgressCard';
 export { TestCategoryFilter } from './TestCategoryFilter';
 export { TestResultsList } from './TestResultsList';
 export type { TestResult, TestCategory, TestStats } from './types';
+
+// Export new components and utilities
+export { TestDataProgress } from './components/TestDataProgress';
+export { TestDataStats } from './components/TestDataStats';
+export { TestDataDescription } from './components/TestDataDescription';
+export * from './utils/testDataGenerators';
