@@ -25,3 +25,10 @@ export interface UploadedFilesListProps {
   onAnalyzeFile: (file: UploadedFile) => void;
   onRemoveFile: (fileId: string) => void;
 }
+
+export interface UploadedFileItemProps {
+  file: UploadedFile;
+  isAnalyzing: boolean;
+  onAnalyzeFile: (file: UploadedFile) => void;
+  onRemoveFile: (fileId: string) => void;
+}
