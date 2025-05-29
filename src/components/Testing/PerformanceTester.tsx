@@ -1,11 +1,10 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Play, Zap, Users, Database, Globe } from 'lucide-react';
-import { TestResult } from './TestingDashboard';
+import { TestResult } from './types';
 
 interface PerformanceTesterProps {
   onTestResult: (result: Omit<TestResult, 'id' | 'timestamp'>) => void;

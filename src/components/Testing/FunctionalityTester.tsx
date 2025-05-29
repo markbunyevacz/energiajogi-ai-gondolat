@@ -1,10 +1,9 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Play, CheckCircle, XCircle } from 'lucide-react';
-import { TestResult } from './TestingDashboard';
+import { TestResult } from './types';
 
 interface FunctionalityTesterProps {
   onTestResult: (result: Omit<TestResult, 'id' | 'timestamp'>) => void;
