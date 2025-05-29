@@ -77,21 +77,21 @@ export function TestDataGenerator() {
       const documents = [
         {
           title: 'Munkaszerződés minta - 2024',
-          type: 'szerződés',
+          type: 'szerződés' as const,
           content: 'Ez egy teszt munkaszerződés tartalom amely tartalmazza a munkavállaló jogait és kötelezettségeit, munkaidő beosztást, fizetési feltételeket és felmondási eljárást.',
           metadata: { category: 'employment', language: 'hu', year: 2024 },
           uploaded_by: user?.id
         },
         {
           title: 'GDPR Adatvédelmi tájékoztató',
-          type: 'szabályzat', 
+          type: 'szabályzat' as const, 
           content: 'GDPR megfelelő adatvédelmi tájékoztató amely részletezi a személyes adatok kezelésének célját, jogalapját, tárolási időtartamát és az érintettek jogait.',
           metadata: { category: 'privacy', language: 'hu', compliance: 'GDPR' },
           uploaded_by: user?.id
         },
         {
           title: 'Bérleti szerződés - Irodahelyiség',
-          type: 'szerződés',
+          type: 'szerződés' as const,
           content: 'Kereskedelmi ingatlan bérleti szerződés amely tartalmazza a bérleti díj mértékét, fizetési feltételeket, fenntartási kötelezettségeket és szerződés módosításának feltételeit.',
           metadata: { category: 'real_estate', language: 'hu', property_type: 'commercial' },
           uploaded_by: user?.id
@@ -172,19 +172,19 @@ export function TestDataGenerator() {
       const analyses = [
         {
           summary: 'Munkaszerződés elemzés - alacsony kockázat, kisebb pontosítások szükségesek',
-          risk_level: 'low',
+          risk_level: 'low' as const,
           recommendations: ['Próbaidő pontosítása szükséges', 'Felmondási feltételek részletezése', 'Túlmunka díjazás szabályozása'],
           analyzed_by: user?.id
         },
         {
           summary: 'Szállítási szerződés elemzés - közepes kockázat, több területen szükséges módosítás',
-          risk_level: 'medium', 
+          risk_level: 'medium' as const, 
           recommendations: ['Kártérítési felső határ meghatározása', 'Vis maior kikötés beépítése', 'Teljesítési határidők pontosítása'],
           analyzed_by: user?.id
         },
         {
           summary: 'IT szolgáltatási szerződés - magas kockázat, jelentős jogi felülvizsgálat szükséges',
-          risk_level: 'high',
+          risk_level: 'high' as const,
           recommendations: ['SLA paraméterek definiálása', 'Adatvédelmi kötelezettségek tisztázása', 'Licencfeltételek pontosítása', 'Felelősségbiztosítás rendezése'],
           analyzed_by: user?.id
         }
