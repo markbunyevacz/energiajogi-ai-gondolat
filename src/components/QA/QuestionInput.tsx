@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,10 +13,32 @@ interface QuestionInputProps {
     totalResults: number;
     processingTime: number;
   } | null;
+  selectedQuestion?: string;
+  onQuestionChange?: (question: string) => void;
 }
 
-export function QuestionInput({ onSubmit, isLoading, results }: QuestionInputProps) {
+export function QuestionInput({ 
+  onSubmit, 
+  isLoading, 
+  results, 
+  selectedQuestion = '', 
+  onQuestionChange 
+}: QuestionInputProps) {
   const [question, setQuestion] = useState('');
+
+  // Update the question when a suggested question is selected
+  useEffect(() => {
+    if (selectedQuestion) {
+      setQuestion(selectedQuestion);
+    }
+  }, [selectedQuestion]);
+
+  const handleQuestionChange = (value: string) => {
+    setQuestion(value);
+    if (onQuestionChange) {
+      onQuestionChange(value);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +46,9 @@ export function QuestionInput({ onSubmit, isLoading, results }: QuestionInputPro
     
     await onSubmit(question.trim());
     setQuestion('');
+    if (onQuestionChange) {
+      onQuestionChange('');
+    }
   };
 
   return (
@@ -44,7 +69,7 @@ export function QuestionInput({ onSubmit, isLoading, results }: QuestionInputPro
           <div className="space-y-2">
             <Textarea
               value={question}
-              onChange={(e) => setQuestion(e.target.value)}
+              onChange={(e) => handleQuestionChange(e.target.value)}
               placeholder="Írja be energiajogi kérdését... (pl. Mi a teendő energiaszolgáltatói szerződésszegés esetén?)"
               className="min-h-[100px] resize-none"
               disabled={isLoading}

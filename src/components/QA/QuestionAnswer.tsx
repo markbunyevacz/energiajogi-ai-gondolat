@@ -22,6 +22,7 @@ interface QASession {
 export function QuestionAnswer() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessions, setSessions] = useState<QASession[]>([]);
+  const [selectedQuestion, setSelectedQuestion] = useState<string>('');
   const { user } = useAuth();
   const { search, results } = useOptimizedSearch(false);
 
@@ -89,8 +90,7 @@ export function QuestionAnswer() {
   };
 
   const handleQuestionSelect = (question: string) => {
-    // This will be handled by the QuestionInput component internally
-    // We could pass the selected question to QuestionInput if needed
+    setSelectedQuestion(question);
   };
 
   return (
@@ -101,6 +101,8 @@ export function QuestionAnswer() {
             onSubmit={handleQuestionSubmit}
             isLoading={isLoading}
             results={results}
+            selectedQuestion={selectedQuestion}
+            onQuestionChange={setSelectedQuestion}
           />
         </div>
         <LegalSourcesWidget />
