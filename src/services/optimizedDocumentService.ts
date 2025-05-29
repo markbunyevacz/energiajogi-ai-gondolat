@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { chunkCache } from './chunkCache';
 import { BatchProcessor } from './batchProcessor';
@@ -108,8 +107,7 @@ class OptimizedDocumentService {
       const { data, error } = await supabase.rpc('search_documents', {
         query_embedding: `[${queryEmbedding.join(',')}]`,
         match_threshold: 0.5,
-        match_count: request.limit || 10,
-        doc_id: request.documentId || null
+        match_count: request.limit || 10
       });
 
       if (error) {
@@ -117,13 +115,21 @@ class OptimizedDocumentService {
         throw error;
       }
 
-      const chunks = (data || []).map((item: any) => ({
+      let chunks = (data || []).map((item: any) => ({
         id: item.chunk_id,
         document_id: item.document_id,
         chunk_text: item.chunk_text,
         chunk_index: 0, // We don't have this from the RPC
         similarity: item.similarity || 0
       }));
+
+      // Filter by document ID if specified
+      if (request.documentId) {
+        chunks = chunks.filter(chunk => chunk.document_id === request.documentId);
+      }
+
+      // Apply limit after filtering
+      chunks = chunks.slice(0, request.limit || 10);
 
       const avgSimilarity = chunks.length > 0 
         ? chunks.reduce((sum, chunk) => sum + (chunk.similarity || 0), 0) / chunks.length 
