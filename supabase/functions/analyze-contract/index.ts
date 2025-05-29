@@ -83,7 +83,17 @@ Respond only with valid JSON, no additional text.`
       }),
     });
 
+    if (!claudeResponse.ok) {
+      throw new Error(`Claude API error: ${claudeResponse.status}`);
+    }
+
     const claudeData = await claudeResponse.json();
+    
+    // Safely access the content array
+    if (!claudeData.content || !Array.isArray(claudeData.content) || claudeData.content.length === 0) {
+      throw new Error('Invalid response from Claude API');
+    }
+
     const analysisResult = JSON.parse(claudeData.content[0].text);
 
     // Save contract analysis to database

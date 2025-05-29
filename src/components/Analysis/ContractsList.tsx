@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Brain } from 'lucide-react';
+import { useState } from 'react';
 
 interface StoredDocument {
   id: string;
@@ -19,12 +20,30 @@ interface ContractsListProps {
 }
 
 export function ContractsList({ contracts, onAnalyzeContract }: ContractsListProps) {
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const handleAnalyze = async (doc: StoredDocument) => {
+    if (!doc.content) {
+      console.error('Document has no content:', doc.id);
+      return;
+    }
+
+    setAnalyzingId(doc.id);
+    try {
+      await onAnalyzeContract(doc);
+    } catch (error) {
+      console.error('Error analyzing contract:', error);
+    } finally {
+      setAnalyzingId(null);
+    }
   };
 
   return (
@@ -55,11 +74,12 @@ export function ContractsList({ contracts, onAnalyzeContract }: ContractsListPro
                     <Badge variant="outline">Szerződés</Badge>
                     <Button
                       size="sm"
-                      onClick={() => onAnalyzeContract(doc)}
-                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                      onClick={() => handleAnalyze(doc)}
+                      disabled={analyzingId === doc.id || !doc.content}
+                      className="bg-purple-600 hover:bg-purple-700 text-white disabled:bg-gray-400"
                     >
                       <Brain className="w-4 h-4 mr-1" />
-                      Elemzés Indítása
+                      {analyzingId === doc.id ? 'Elemzés...' : 'Elemzés Indítása'}
                     </Button>
                   </div>
                 </div>
@@ -68,6 +88,10 @@ export function ContractsList({ contracts, onAnalyzeContract }: ContractsListPro
                   <span>{formatFileSize(doc.file_size)}</span>
                   <span>{new Date(doc.upload_date).toLocaleDateString('hu-HU')}</span>
                 </div>
+
+                {!doc.content && (
+                  <p className="text-xs text-red-500 mt-1">Dokumentum tartalom nem elérhető</p>
+                )}
               </div>
             </div>
           ))}

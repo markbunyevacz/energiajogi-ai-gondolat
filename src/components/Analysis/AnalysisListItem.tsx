@@ -2,7 +2,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Eye } from 'lucide-react';
 import { ContractAnalysis } from '@/types';
 import { AnalysisProcessingSteps } from './AnalysisProcessingSteps';
 
@@ -39,13 +39,25 @@ export function AnalysisListItem({ analysis, onSelect, onExport }: AnalysisListI
     }
   };
 
+  const handleExport = () => {
+    console.log('Exporting analysis:', analysis.id);
+    onExport(analysis);
+  };
+
+  const handleViewDetails = () => {
+    console.log('Viewing details for analysis:', analysis.id);
+    if (onSelect) {
+      onSelect(analysis);
+    }
+  };
+
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="pt-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <FileText className="w-5 h-5 text-blue-600" />
-            <h3 className="font-medium">{analysis.contractId}</h3>
+            <h3 className="font-medium">{analysis.contractId || 'Ismeretlen szerződés'}</h3>
             <Badge className={getRiskBadgeClass(analysis.riskLevel)}>
               {getRiskLabel(analysis.riskLevel)} kockázat
             </Badge>
@@ -55,7 +67,7 @@ export function AnalysisListItem({ analysis, onSelect, onExport }: AnalysisListI
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onExport(analysis)}
+              onClick={handleExport}
             >
               <Download className="w-4 h-4 mr-1" />
               Export
@@ -63,8 +75,9 @@ export function AnalysisListItem({ analysis, onSelect, onExport }: AnalysisListI
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onSelect?.(analysis)}
+              onClick={handleViewDetails}
             >
+              <Eye className="w-4 h-4 mr-1" />
               Részletek
             </Button>
           </div>
@@ -73,9 +86,9 @@ export function AnalysisListItem({ analysis, onSelect, onExport }: AnalysisListI
         <AnalysisProcessingSteps analysis={analysis} />
         
         <div className="mt-4">
-          <p className="text-sm text-gray-600">{analysis.summary}</p>
+          <p className="text-sm text-gray-600">{analysis.summary || 'Nincs összefoglaló elérhető'}</p>
           <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-            <span>{analysis.risks.length} kockázat azonosítva</span>
+            <span>{analysis.risks?.length || 0} kockázat azonosítva</span>
             <span>{new Date(analysis.timestamp).toLocaleDateString('hu-HU')}</span>
           </div>
         </div>

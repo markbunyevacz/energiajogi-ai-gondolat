@@ -8,6 +8,7 @@ import { AnalysisListItem } from './AnalysisListItem';
 import { AnalysisRiskCharts } from './AnalysisRiskCharts';
 import { AnalysisTimeline } from './AnalysisTimeline';
 import { BatchAnalysisProcessor } from './BatchAnalysisProcessor';
+import { ContractAnalysisResults } from './ContractAnalysisResults';
 import { 
   filterAnalyses, 
   sortAnalyses, 
@@ -26,6 +27,7 @@ export function ContractAnalysisDashboard({ analyses, onAnalysisSelect }: Contra
   const [sortBy, setSortBy] = useState<string>('date');
   const [filteredAnalyses, setFilteredAnalyses] = useState<ContractAnalysis[]>(analyses);
   const [completionRate, setCompletionRate] = useState<number>(0);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<ContractAnalysis | null>(null);
 
   useEffect(() => {
     const rate = calculateCompletionRate(analyses.length);
@@ -37,6 +39,36 @@ export function ContractAnalysisDashboard({ analyses, onAnalysisSelect }: Contra
     filtered = sortAnalyses(filtered, sortBy);
     setFilteredAnalyses(filtered);
   }, [analyses, searchTerm, filterRisk, sortBy]);
+
+  const handleAnalysisSelect = (analysis: ContractAnalysis) => {
+    console.log('Analysis selected:', analysis.id);
+    setSelectedAnalysis(analysis);
+    if (onAnalysisSelect) {
+      onAnalysisSelect(analysis);
+    }
+  };
+
+  const handleExportAnalysis = (analysis: ContractAnalysis) => {
+    console.log('Exporting analysis:', analysis.id);
+    exportAnalysis(analysis);
+  };
+
+  if (selectedAnalysis) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Elemzés Részletei</h2>
+          <button
+            onClick={() => setSelectedAnalysis(null)}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            ← Vissza a listához
+          </button>
+        </div>
+        <ContractAnalysisResults analyses={[selectedAnalysis]} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -61,14 +93,18 @@ export function ContractAnalysisDashboard({ analyses, onAnalysisSelect }: Contra
           />
 
           <div className="space-y-4">
-            {filteredAnalyses.map((analysis) => (
-              <AnalysisListItem
-                key={analysis.id}
-                analysis={analysis}
-                onSelect={onAnalysisSelect}
-                onExport={exportAnalysis}
-              />
-            ))}
+            {filteredAnalyses.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">Nincs elérhető elemzés</p>
+            ) : (
+              filteredAnalyses.map((analysis) => (
+                <AnalysisListItem
+                  key={analysis.id}
+                  analysis={analysis}
+                  onSelect={handleAnalysisSelect}
+                  onExport={handleExportAnalysis}
+                />
+              ))
+            )}
           </div>
         </TabsContent>
 
