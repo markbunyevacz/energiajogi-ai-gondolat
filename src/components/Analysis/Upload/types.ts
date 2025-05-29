@@ -6,6 +6,7 @@ export interface UploadedFile {
   status: 'uploading' | 'processing' | 'completed' | 'error';
   progress: number;
   content?: string;
+  file?: File;
 }
 
 export interface DocumentUploadZoneProps {
@@ -20,13 +21,6 @@ export interface DocumentUploadZoneProps {
 
 export interface UploadedFilesListProps {
   files: UploadedFile[];
-  isAnalyzing: boolean;
-  onAnalyzeFile: (file: UploadedFile) => void;
-  onRemoveFile: (fileId: string) => void;
-}
-
-export interface UploadedFileItemProps {
-  file: UploadedFile;
   isAnalyzing: boolean;
   onAnalyzeFile: (file: UploadedFile) => void;
   onRemoveFile: (fileId: string) => void;

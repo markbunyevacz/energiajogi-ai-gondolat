@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { ContractAnalysis } from '@/types';
 import { ContractInput } from './ContractInput';
@@ -10,7 +9,8 @@ import { useContractAnalysis } from "@/hooks/useContractAnalysis";
 
 export function ContractAnalysisComponent() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const { analyses, fetchAnalyses } = useContractAnalysis();
+  const { analyses, fetchAnalyses, saveDocumentAndAnalyze } = useContractAnalysis();
+
   const [analysisResults, setAnalysisResults] = useState<ContractAnalysis[]>([
     {
       id: '1',
@@ -73,8 +73,13 @@ export function ContractAnalysisComponent() {
     }, 3000);
   };
 
-  const handleDocumentAnalyze = (contractText: string) => {
-    handleAnalyze(contractText);
+  const handleDocumentSaveAndAnalyze = async (file: File, content: string) => {
+    setIsAnalyzing(true);
+    try {
+      await saveDocumentAndAnalyze(file, content);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -90,7 +95,7 @@ export function ContractAnalysisComponent() {
         </TabsContent>
 
         <TabsContent value="upload" className="space-y-6">
-          <ContractDocumentUpload onAnalyze={handleDocumentAnalyze} isAnalyzing={isAnalyzing} />
+          <ContractDocumentUpload onSaveAndAnalyze={handleDocumentSaveAndAnalyze} isAnalyzing={isAnalyzing} />
         </TabsContent>
       </Tabs>
 

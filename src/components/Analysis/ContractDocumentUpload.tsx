@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -8,11 +7,11 @@ import { UploadedFile } from './Upload/types';
 import { extractTextFromFile } from './Upload/utils';
 
 interface ContractDocumentUploadProps {
-  onAnalyze: (contractText: string) => void;
+  onSaveAndAnalyze: (file: File, content: string) => void;
   isAnalyzing: boolean;
 }
 
-export function ContractDocumentUpload({ onAnalyze, isAnalyzing }: ContractDocumentUploadProps) {
+export function ContractDocumentUpload({ onSaveAndAnalyze, isAnalyzing }: ContractDocumentUploadProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const { user } = useAuth();
@@ -50,7 +49,8 @@ export function ContractDocumentUpload({ onAnalyze, isAnalyzing }: ContractDocum
           ...f, 
           status: 'completed', 
           progress: 100, 
-          content 
+          content,
+          file
         } : f
       ));
 
@@ -87,9 +87,11 @@ export function ContractDocumentUpload({ onAnalyze, isAnalyzing }: ContractDocum
     Array.from(fileList).forEach(processFile);
   };
 
-  const handleAnalyzeFile = (file: UploadedFile) => {
-    if (file.content) {
-      onAnalyze(file.content);
+  const handleSaveAndAnalyze = (uploadedFile: UploadedFile) => {
+    if (uploadedFile.content && uploadedFile.file) {
+      onSaveAndAnalyze(uploadedFile.file, uploadedFile.content);
+      // Remove the file from the list after processing
+      setFiles(prev => prev.filter(f => f.id !== uploadedFile.id));
     }
   };
 
@@ -112,7 +114,7 @@ export function ContractDocumentUpload({ onAnalyze, isAnalyzing }: ContractDocum
       <UploadedFilesList
         files={files}
         isAnalyzing={isAnalyzing}
-        onAnalyzeFile={handleAnalyzeFile}
+        onAnalyzeFile={handleSaveAndAnalyze}
         onRemoveFile={removeFile}
       />
     </div>

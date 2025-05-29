@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/hooks/useAuth";
 import { ContractAnalysis } from '@/types';
@@ -96,6 +97,60 @@ export function useContractAnalysis() {
     }
   };
 
+  const saveDocumentAndAnalyze = async (file: File, content: string) => {
+    if (!user) {
+      toast.error('Bejelentkezés szükséges');
+      return;
+    }
+
+    try {
+      console.log('Saving document to database first...');
+      toast.info('Dokumentum mentése...');
+
+      // First, save the document to the database
+      const { data: documentData, error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          title: file.name,
+          type: 'szerződés',
+          file_size: file.size,
+          uploaded_by: user.id,
+          content: content,
+          metadata: {
+            source: 'Szerződéselemzés oldal feltöltés',
+            keywords: ['szerződés', 'elemzés']
+          }
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('Database error saving document:', dbError);
+        toast.error('Hiba a dokumentum mentésekor');
+        return;
+      }
+
+      console.log('Document saved successfully:', documentData.id);
+
+      // Now analyze the saved document
+      await analyzeContract({
+        id: documentData.id,
+        title: documentData.title,
+        type: documentData.type,
+        file_size: documentData.file_size || 0,
+        upload_date: documentData.upload_date || documentData.created_at,
+        content: documentData.content
+      });
+
+      // Refresh the contracts list to show the new document
+      await fetchAvailableContracts();
+
+    } catch (error) {
+      console.error('Error saving document:', error);
+      toast.error('Hiba a dokumentum mentésekor');
+    }
+  };
+
   const analyzeContract = async (document: StoredDocument) => {
     if (!document.content || !user) {
       toast.error('A dokumentum tartalma nem elérhető az elemzéshez');
@@ -154,6 +209,9 @@ export function useContractAnalysis() {
     analyses,
     availableContracts,
     analyzeContract,
-    fetchAnalyses
+    saveDocumentAndAnalyze,
+    fetchAnalyses,
+    fetchAvailableContracts
   };
 }
+
