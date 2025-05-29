@@ -1,0 +1,85 @@
+
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Download } from 'lucide-react';
+import { ContractAnalysis } from '@/types';
+import { AnalysisProcessingSteps } from './AnalysisProcessingSteps';
+
+interface AnalysisListItemProps {
+  analysis: ContractAnalysis;
+  onSelect?: (analysis: ContractAnalysis) => void;
+  onExport: (analysis: ContractAnalysis) => void;
+}
+
+export function AnalysisListItem({ analysis, onSelect, onExport }: AnalysisListItemProps) {
+  const getRiskLabel = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'high':
+        return 'Magas';
+      case 'medium':
+        return 'Közepes';
+      case 'low':
+        return 'Alacsony';
+      default:
+        return riskLevel;
+    }
+  };
+
+  const getRiskBadgeClass = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'high':
+        return 'bg-red-100 text-red-800';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'low':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="pt-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <FileText className="w-5 h-5 text-blue-600" />
+            <h3 className="font-medium">{analysis.contractId}</h3>
+            <Badge className={getRiskBadgeClass(analysis.riskLevel)}>
+              {getRiskLabel(analysis.riskLevel)} kockázat
+            </Badge>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onExport(analysis)}
+            >
+              <Download className="w-4 h-4 mr-1" />
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onSelect?.(analysis)}
+            >
+              Részletek
+            </Button>
+          </div>
+        </div>
+
+        <AnalysisProcessingSteps analysis={analysis} />
+        
+        <div className="mt-4">
+          <p className="text-sm text-gray-600">{analysis.summary}</p>
+          <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+            <span>{analysis.risks.length} kockázat azonosítva</span>
+            <span>{new Date(analysis.timestamp).toLocaleDateString('hu-HU')}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
