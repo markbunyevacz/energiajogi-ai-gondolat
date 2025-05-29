@@ -25,7 +25,7 @@ export function TestDataGenerator() {
     setProgress(0);
     
     try {
-      console.log('Starting test data generation...');
+      console.log('Starting test data generation for user:', user.id);
       toast.info('Teszt adatok generálása elkezdődött...');
 
       // 1. Generate test documents (20%)
@@ -77,27 +77,28 @@ export function TestDataGenerator() {
       const documents = [
         {
           title: 'Munkaszerződés minta - 2024',
-          type: 'szerződés' as const,
+          type: 'szerződés',
           content: 'Ez egy teszt munkaszerződés tartalom amely tartalmazza a munkavállaló jogait és kötelezettségeit, munkaidő beosztást, fizetési feltételeket és felmondási eljárást.',
           metadata: { category: 'employment', language: 'hu', year: 2024 },
-          user_id: user?.id
+          uploaded_by: user?.id
         },
         {
           title: 'GDPR Adatvédelmi tájékoztató',
-          type: 'szabályzat' as const, 
+          type: 'szabályzat', 
           content: 'GDPR megfelelő adatvédelmi tájékoztató amely részletezi a személyes adatok kezelésének célját, jogalapját, tárolási időtartamát és az érintettek jogait.',
           metadata: { category: 'privacy', language: 'hu', compliance: 'GDPR' },
-          user_id: user?.id
+          uploaded_by: user?.id
         },
         {
           title: 'Bérleti szerződés - Irodahelyiség',
-          type: 'szerződés' as const,
+          type: 'szerződés',
           content: 'Kereskedelmi ingatlan bérleti szerződés amely tartalmazza a bérleti díj mértékét, fizetési feltételeket, fenntartási kötelezettségeket és szerződés módosításának feltételeit.',
           metadata: { category: 'real_estate', language: 'hu', property_type: 'commercial' },
-          user_id: user?.id
+          uploaded_by: user?.id
         }
       ];
 
+      console.log('Inserting documents with user_id:', user?.id);
       const { data, error } = await supabase
         .from('documents')
         .insert(documents)
@@ -108,6 +109,7 @@ export function TestDataGenerator() {
         throw new Error(`Dokumentum generálási hiba: ${error.message}`);
       }
 
+      console.log('Successfully inserted documents:', data);
       return data || [];
     } catch (error) {
       console.error('Error in generateTestDocuments:', error);
@@ -146,6 +148,7 @@ export function TestDataGenerator() {
         }
       ];
 
+      console.log('Inserting QA sessions with user_id:', user.id);
       const { data, error } = await supabase
         .from('qa_sessions')
         .insert(sessions)
@@ -156,6 +159,7 @@ export function TestDataGenerator() {
         throw new Error(`QA session generálási hiba: ${error.message}`);
       }
 
+      console.log('Successfully inserted QA sessions:', data);
       return data || [];
     } catch (error) {
       console.error('Error in generateQASessions:', error);
@@ -168,24 +172,25 @@ export function TestDataGenerator() {
       const analyses = [
         {
           summary: 'Munkaszerződés elemzés - alacsony kockázat, kisebb pontosítások szükségesek',
-          risk_level: 'low' as const,
+          risk_level: 'low',
           recommendations: ['Próbaidő pontosítása szükséges', 'Felmondási feltételek részletezése', 'Túlmunka díjazás szabályozása'],
-          user_id: user?.id
+          analyzed_by: user?.id
         },
         {
           summary: 'Szállítási szerződés elemzés - közepes kockázat, több területen szükséges módosítás',
-          risk_level: 'medium' as const, 
+          risk_level: 'medium', 
           recommendations: ['Kártérítési felső határ meghatározása', 'Vis maior kikötés beépítése', 'Teljesítési határidők pontosítása'],
-          user_id: user?.id
+          analyzed_by: user?.id
         },
         {
           summary: 'IT szolgáltatási szerződés - magas kockázat, jelentős jogi felülvizsgálat szükséges',
-          risk_level: 'high' as const,
+          risk_level: 'high',
           recommendations: ['SLA paraméterek definiálása', 'Adatvédelmi kötelezettségek tisztázása', 'Licencfeltételek pontosítása', 'Felelősségbiztosítás rendezése'],
-          user_id: user?.id
+          analyzed_by: user?.id
         }
       ];
 
+      console.log('Inserting contract analyses with analyzed_by:', user?.id);
       const { data, error } = await supabase
         .from('contract_analyses')
         .insert(analyses)
@@ -196,6 +201,7 @@ export function TestDataGenerator() {
         throw new Error(`Szerződéselemzés generálási hiba: ${error.message}`);
       }
 
+      console.log('Successfully inserted contract analyses:', data);
       return data || [];
     } catch (error) {
       console.error('Error in generateContractAnalyses:', error);
@@ -208,26 +214,23 @@ export function TestDataGenerator() {
       const metrics = [
         { 
           metric_type: 'api_response_time', 
-          metric_value: 1250,
-          user_id: user?.id
+          metric_value: 1250
         },
         { 
           metric_type: 'document_processing_time', 
-          metric_value: 3500,
-          user_id: user?.id 
+          metric_value: 3500
         },
         { 
           metric_type: 'ai_confidence_score', 
-          metric_value: 0.87,
-          user_id: user?.id
+          metric_value: 0.87
         },
         { 
           metric_type: 'user_satisfaction', 
-          metric_value: 4.2,
-          user_id: user?.id
+          metric_value: 4.2
         }
       ];
 
+      console.log('Inserting performance metrics');
       const { data, error } = await supabase
         .from('performance_metrics')
         .insert(metrics)
@@ -238,6 +241,7 @@ export function TestDataGenerator() {
         throw new Error(`Teljesítmény metrika generálási hiba: ${error.message}`);
       }
 
+      console.log('Successfully inserted performance metrics:', data);
       return data || [];
     } catch (error) {
       console.error('Error in generatePerformanceMetrics:', error);
@@ -265,6 +269,7 @@ export function TestDataGenerator() {
         }
       ];
 
+      console.log('Inserting analytics events with user_id:', user?.id);
       const { data, error } = await supabase
         .from('analytics_events')
         .insert(events)
@@ -275,6 +280,7 @@ export function TestDataGenerator() {
         throw new Error(`Analytics esemény generálási hiba: ${error.message}`);
       }
 
+      console.log('Successfully inserted analytics events:', data);
       return data || [];
     } catch (error) {
       console.error('Error in generateAnalyticsEvents:', error);
