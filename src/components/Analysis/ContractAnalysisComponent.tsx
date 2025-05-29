@@ -6,9 +6,11 @@ import { ContractAnalysisResults } from './ContractAnalysisResults';
 import { ContractDocumentUpload } from './ContractDocumentUpload';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { generateMockRisks, generateMockRecommendations } from './utils/mockDataGenerators';
+import { useContractAnalysis } from "@/hooks/useContractAnalysis";
 
 export function ContractAnalysisComponent() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { analyses, fetchAnalyses } = useContractAnalysis();
   const [analysisResults, setAnalysisResults] = useState<ContractAnalysis[]>([
     {
       id: '1',
@@ -65,6 +67,9 @@ export function ContractAnalysisComponent() {
       
       setAnalysisResults(prev => [newAnalysis, ...prev]);
       setIsAnalyzing(false);
+      
+      // Also refresh the real analyses from database
+      fetchAnalyses();
     }, 3000);
   };
 
@@ -89,7 +94,7 @@ export function ContractAnalysisComponent() {
         </TabsContent>
       </Tabs>
 
-      <ContractAnalysisResults analyses={analysisResults} />
+      <ContractAnalysisResults analyses={[...analyses, ...analysisResults]} />
     </div>
   );
 }

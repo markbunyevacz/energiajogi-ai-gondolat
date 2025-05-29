@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { ProtectedRoute } from "@/components/Layout/ProtectedRoute";
 import { Header } from "@/components/Layout/Header";
-import { ContractAnalysisComponent } from "@/components/Analysis/ContractAnalysis";
+import { ContractAnalysisComponent } from "@/components/Analysis/ContractAnalysisComponent";
 import { ContractAnalysisDashboard } from "@/components/Analysis/ContractAnalysisDashboard";
 import { ContractAnalysisHeader } from "@/components/Analysis/ContractAnalysisHeader";
 import { ContractsList } from "@/components/Analysis/ContractsList";
@@ -16,11 +16,16 @@ import { useEffect } from 'react';
 const ContractAnalysisPage = () => {
   const { trackPageView } = useAnalyticsTracking();
   const [selectedAnalysis, setSelectedAnalysis] = useState<ContractAnalysis | null>(null);
+  const [activeTab, setActiveTab] = useState("contracts");
   const { analyses, availableContracts, analyzeContract } = useContractAnalysis();
 
   useEffect(() => {
     trackPageView('/contract-analysis');
   }, [trackPageView]);
+
+  const handleSwitchToAnalyze = () => {
+    setActiveTab("analyze");
+  };
 
   return (
     <ProtectedRoute>
@@ -30,7 +35,7 @@ const ContractAnalysisPage = () => {
           <div className="space-y-8">
             <ContractAnalysisHeader />
 
-            <Tabs defaultValue="contracts" className="space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <TabsList className="grid w-full max-w-lg grid-cols-3">
                 <TabsTrigger value="contracts">Szerződések ({availableContracts.length})</TabsTrigger>
                 <TabsTrigger value="dashboard">Elemzések ({analyses.length})</TabsTrigger>
@@ -39,7 +44,7 @@ const ContractAnalysisPage = () => {
 
               <TabsContent value="contracts" className="space-y-6">
                 {availableContracts.length === 0 ? (
-                  <ContractsEmptyState />
+                  <ContractsEmptyState onSwitchToAnalyze={handleSwitchToAnalyze} />
                 ) : (
                   <ContractsList 
                     contracts={availableContracts}

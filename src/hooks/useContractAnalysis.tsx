@@ -67,20 +67,26 @@ export function useContractAnalysis() {
     if (!user) return;
 
     try {
+      console.log('Fetching contracts for user:', user.id);
+      
       const { data, error } = await supabase
         .from('documents')
         .select('id, title, type, file_size, upload_date, content')
         .eq('type', 'szerződés')
+        .eq('uploaded_by', user.id)  // Explicitly filter by user ID
         .order('upload_date', { ascending: false });
 
       if (error) {
         console.error('Error fetching contracts:', error);
+        toast.error('Hiba a szerződések betöltésekor');
         return;
       }
 
+      console.log('Fetched contracts:', data);
       setAvailableContracts(data || []);
     } catch (error) {
       console.error('Error fetching available contracts:', error);
+      toast.error('Hiba a szerződések betöltésekor');
     }
   };
 
@@ -117,6 +123,7 @@ export function useContractAnalysis() {
 
   useEffect(() => {
     if (user) {
+      console.log('User authenticated, fetching data for user:', user.id);
       fetchAnalyses();
       fetchAvailableContracts();
     }

@@ -1,12 +1,13 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Upload, Plus } from 'lucide-react';
 
-export function ContractsEmptyState() {
-  const navigate = useNavigate();
+interface ContractsEmptyStateProps {
+  onSwitchToAnalyze: () => void;
+}
 
+export function ContractsEmptyState({ onSwitchToAnalyze }: ContractsEmptyStateProps) {
   return (
     <Card>
       <CardContent className="pt-8 text-center">
@@ -15,10 +16,14 @@ export function ContractsEmptyState() {
           Nincsenek feltöltött szerződések
         </h3>
         <p className="text-gray-600 mb-4">
-          Töltsön fel szerződéseket a főoldalon az elemzés megkezdéséhez
+          Töltsön fel szerződéseket az elemzés megkezdéséhez
         </p>
-        <Button onClick={() => navigate('/')}>
-          Dokumentumok feltöltése
+        <Button 
+          onClick={onSwitchToAnalyze}
+          className="bg-purple-600 hover:bg-purple-700 text-white"
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          Új szerződés feltöltése
         </Button>
       </CardContent>
     </Card>
