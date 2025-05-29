@@ -1,15 +1,18 @@
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ContractAnalysisPage from "./pages/ContractAnalysis";
 
+const queryClient = new QueryClient();
+
 function App() {
   return (
-    <QueryClient>
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
@@ -19,7 +22,7 @@ function App() {
         </Routes>
         <Toaster />
       </BrowserRouter>
-    </QueryClient>
+    </QueryClientProvider>
   );
 }
 
