@@ -45,7 +45,7 @@ serve(async (req) => {
     const claudeApiKey = Deno.env.get('CLAUDE_API_KEY');
     if (!claudeApiKey) {
       console.error('Claude API key not found in environment variables');
-      throw new Error('Claude API kulcs nincs beállítva - ellenőrizze a Supabase titkos kulcsokat');
+      throw new Error('A Claude API kulcs nincs beállítva. Kérjük, állítsa be a CLAUDE_API_KEY titkos kulcsot a Supabase projektben.');
     }
 
     console.log('Sending request to Claude API with claude-opus-4-20250514 model...');
@@ -112,9 +112,9 @@ Respond only with valid JSON, no additional text.`
       }
 
       if (claudeResponse.status === 401) {
-        throw new Error('Claude API hitelesítési hiba - ellenőrizze az API kulcs érvényességét');
+        throw new Error('A Claude API kulcs érvénytelen vagy lejárt. Kérjük, ellenőrizze és frissítse a CLAUDE_API_KEY titkos kulcsot a Supabase projektben.');
       } else if (claudeResponse.status === 429) {
-        throw new Error('Claude API rate limit túllépve - próbálja újra később');
+        throw new Error('A Claude API rate limit túllépve. Kérjük, próbálja újra néhány perc múlva.');
       } else if (claudeResponse.status === 400) {
         const errorMsg = errorData?.error?.message || 'Hibás kérés';
         throw new Error(`Claude API kérés hiba: ${errorMsg}`);
@@ -224,19 +224,10 @@ Respond only with valid JSON, no additional text.`
   } catch (error) {
     console.error('Error in analyze-contract function:', error);
     
-    // Provide more specific error messages
-    let errorMessage = error.message;
-    
-    // If the error message is generic, provide a more helpful one
-    if (!errorMessage || errorMessage === 'Ismeretlen hiba történt az elemzés során') {
-      errorMessage = 'Váratlan hiba történt a szerződés elemzése során';
-    }
-    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: errorMessage,
-        details: error.message,
+        error: error.message,
         timestamp: new Date().toISOString()
       }),
       {
