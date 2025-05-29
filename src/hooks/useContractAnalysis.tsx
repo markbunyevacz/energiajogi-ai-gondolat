@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/hooks/useAuth";
 import { ContractAnalysis } from '@/types';
@@ -22,6 +23,8 @@ export function useContractAnalysis() {
     if (!user) return;
 
     try {
+      console.log('Fetching analyses for user:', user.id);
+      
       const { data, error } = await supabase
         .from('contract_analyses')
         .select(`
@@ -39,12 +42,15 @@ export function useContractAnalysis() {
             section
           )
         `)
+        .eq('analyzed_by', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching analyses:', error);
         return;
       }
+
+      console.log('Fetched analyses data:', data);
 
       const transformedAnalyses: ContractAnalysis[] = data.map(item => ({
         id: item.id,
@@ -56,6 +62,7 @@ export function useContractAnalysis() {
         risks: item.risks || []
       }));
 
+      console.log('Transformed analyses:', transformedAnalyses);
       setAnalyses(transformedAnalyses);
     } catch (error) {
       console.error('Error fetching contract analyses:', error);
@@ -117,7 +124,8 @@ export function useContractAnalysis() {
 
       if (data?.success) {
         toast.success('Szerződés elemzése sikeresen befejezve');
-        fetchAnalyses();
+        // Immediately refresh the analyses list
+        await fetchAnalyses();
       } else {
         console.error('Analysis failed:', data);
         const errorMessage = data?.error || 'Ismeretlen hiba történt az elemzés során';
