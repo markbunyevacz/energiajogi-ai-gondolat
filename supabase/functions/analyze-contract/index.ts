@@ -56,7 +56,8 @@ serve(async (req) => {
       throw new Error('Érvénytelen Claude API kulcs formátum. A kulcs sk-ant- előtaggal kell kezdődnie.');
     }
 
-    console.log('Sending request to Claude API with claude-3-5-sonnet model...');
+    const modelToUse = 'claude-3-5-sonnet-20241022';
+    console.log(`Sending request to Claude API with model: ${modelToUse}`);
 
     // Analyze contract using Claude AI with correct model
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -67,7 +68,7 @@ serve(async (req) => {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: modelToUse,
         max_tokens: 2000,
         messages: [
           {
