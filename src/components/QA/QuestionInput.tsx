@@ -5,11 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Send, Loader2 } from 'lucide-react';
 import { aiAgentRouter, AgentContext } from '@/services/aiAgentRouter';
+import { conversationContextManager } from '@/services/conversationContext';
 import { AgentIndicator } from '@/components/AI/AgentIndicator';
 import { useAuth } from '@/hooks/useAuth';
 
 interface QuestionInputProps {
-  onSubmit: (question: string, agentType?: string) => void;
+  onSubmit: (question: string, agentType?: string, conversationContext?: any) => void;
   isLoading: boolean;
   results?: any;
   selectedQuestion: string;
@@ -24,24 +25,40 @@ export function QuestionInput({
 }: QuestionInputProps) {
   const [question, setQuestion] = useState('');
   const [agentAnalysis, setAgentAnalysis] = useState<any>(null);
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const finalQuestion = selectedQuestion || question;
-    if (finalQuestion.trim()) {
+    if (finalQuestion.trim() && user) {
+      // Get conversation context for this session
+      const sessionId = user.id;
+      const currentContext = conversationContextManager.getContext(sessionId);
+      
+      // Get recent questions for context
+      const recentQuestions = conversationContextManager.getRecentQuestions(sessionId, 3);
+      
       // Analyze question with AI agent router
       const context: AgentContext = {
-        previousQuestions: [], // This would come from conversation history
+        previousQuestions: recentQuestions,
         documentTypes: [], // This would come from uploaded documents
         userRole: profile?.role || 'jogász',
-        sessionHistory: []
+        sessionHistory: currentContext?.messages || []
       };
 
       const analysis = aiAgentRouter.analyzeQuestion(finalQuestion, context);
       setAgentAnalysis(analysis);
       
-      onSubmit(analysis.suggestedPrompt, analysis.agentType);
+      // Prepare conversation context for the API
+      const conversationContext = {
+        sessionId: sessionId,
+        currentTopic: currentContext?.currentTopic,
+        recentQuestions: recentQuestions,
+        userRole: profile?.role || 'jogász',
+        messageCount: currentContext?.messages.length || 0
+      };
+
+      onSubmit(analysis.suggestedPrompt, analysis.agentType, conversationContext);
       setQuestion('');
       onQuestionChange('');
     }

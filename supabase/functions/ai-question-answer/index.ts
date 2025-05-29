@@ -11,6 +11,10 @@ const corsHeaders = {
 interface RequestBody {
   question: string;
   userId: string;
+  searchResults?: any[];
+  confidence?: number;
+  agentType?: string;
+  conversationContext?: any;
 }
 
 serve(async (req) => {
@@ -21,7 +25,7 @@ serve(async (req) => {
   const startTime = performance.now();
 
   try {
-    const { question, userId }: RequestBody = await req.json();
+    const { question, userId, searchResults = [], confidence = 60, agentType = 'general', conversationContext = {} }: RequestBody = await req.json();
 
     if (!question || !userId) {
       throw new Error('Question and userId are required');
@@ -29,7 +33,7 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // Use service role key for RLS bypass
       {
         global: {
           headers: { Authorization: req.headers.get('Authorization')! },
@@ -37,13 +41,17 @@ serve(async (req) => {
       }
     );
 
-    console.log('Processing question:', question);
+    console.log('Processing question with agent:', agentType);
 
     // Track analytics event
     await supabaseClient.from('analytics_events').insert({
       user_id: userId,
       event_type: 'question_asked',
-      event_data: { question_length: question.length }
+      event_data: { 
+        question_length: question.length,
+        agent_type: agentType,
+        confidence: confidence
+      }
     });
 
     // Generate embedding for the question
@@ -63,28 +71,11 @@ serve(async (req) => {
     if (!embeddingResponse.ok) {
       const errorText = await embeddingResponse.text();
       console.error('OpenAI embedding error:', errorText);
-      
-      // Track error
-      await supabaseClient.from('performance_metrics').insert({
-        metric_type: 'embedding_error',
-        metric_value: performance.now() - embeddingStartTime,
-        metadata: { error: errorText }
-      });
-      
       throw new Error(`OpenAI embedding failed: ${embeddingResponse.status}`);
     }
 
     const embeddingData = await embeddingResponse.json();
     const embeddingTime = performance.now() - embeddingStartTime;
-    
-    // Track embedding performance
-    await supabaseClient.from('performance_metrics').insert({
-      metric_type: 'embedding_time',
-      metric_value: embeddingTime,
-      metadata: { model: 'text-embedding-ada-002' }
-    });
-
-    console.log('Embedding data structure:', JSON.stringify(embeddingData, null, 2));
 
     if (!embeddingData.data || !embeddingData.data[0] || !embeddingData.data[0].embedding) {
       console.error('Invalid embedding response structure:', embeddingData);
@@ -93,45 +84,97 @@ serve(async (req) => {
 
     const queryEmbedding = embeddingData.data[0].embedding;
 
-    // Search for relevant document chunks
-    const searchStartTime = performance.now();
-    const { data: searchResults, error: searchError } = await supabaseClient.rpc(
-      'search_documents',
-      {
-        query_embedding: queryEmbedding,
-        match_threshold: 0.7,
-        match_count: 5,
+    // Search for relevant document chunks if not provided
+    let finalSearchResults = searchResults;
+    if (!searchResults || searchResults.length === 0) {
+      const searchStartTime = performance.now();
+      const { data: searchData, error: searchError } = await supabaseClient.rpc(
+        'search_documents',
+        {
+          query_embedding: queryEmbedding,
+          match_threshold: 0.7,
+          match_count: 5,
+        }
+      );
+
+      if (searchError) {
+        console.error('Search error:', searchError);
       }
-    );
 
-    const searchTime = performance.now() - searchStartTime;
-    
-    // Track search performance
-    await supabaseClient.from('performance_metrics').insert({
-      metric_type: 'document_search_time',
-      metric_value: searchTime,
-      metadata: { results_count: searchResults?.length || 0 }
-    });
-
-    if (searchError) {
-      console.error('Search error:', searchError);
+      finalSearchResults = searchData || [];
+      console.log('Search results:', finalSearchResults.length);
     }
 
-    console.log('Search results:', searchResults);
-
     // Prepare context from relevant documents
-    const context = searchResults?.map((result: any) => 
+    const context = finalSearchResults?.map((result: any) => 
       `${result.document_title}: ${result.chunk_text}`
     ).join('\n\n') || '';
 
-    console.log('Context for Claude:', context.substring(0, 200) + '...');
+    // Create agent-specific prompt based on agent type
+    const getAgentPrompt = (type: string, baseQuestion: string, contextData: string) => {
+      const agentPrompts = {
+        contract: `You are a specialized contract analysis AI assistant for Hungarian energy law. 
+        Focus on contract terms, obligations, risk assessment, and compliance requirements.
+        
+        Context: ${contextData}
+        Question: ${baseQuestion}
+        
+        Provide detailed contract analysis with specific focus on:
+        - Contract terms and conditions
+        - Legal obligations and rights
+        - Risk assessment
+        - Compliance requirements
+        
+        Always cite specific legal sources with clickable links.`,
+        
+        legal_research: `You are a specialized legal research AI assistant for Hungarian energy law.
+        Focus on legal precedents, regulations, and statutory interpretation.
+        
+        Context: ${contextData}
+        Question: ${baseQuestion}
+        
+        Provide comprehensive legal research with focus on:
+        - Relevant legal precedents
+        - Regulatory framework analysis
+        - Statutory interpretation
+        - Current legal developments
+        
+        Always cite specific legal sources with clickable links.`,
+        
+        compliance: `You are a specialized compliance AI assistant for Hungarian energy law.
+        Focus on regulatory compliance, reporting requirements, and compliance strategies.
+        
+        Context: ${contextData}
+        Question: ${baseQuestion}
+        
+        Provide detailed compliance guidance with focus on:
+        - Regulatory compliance requirements
+        - Reporting obligations
+        - Compliance strategies
+        - Risk mitigation
+        
+        Always cite specific legal sources with clickable links.`,
+        
+        general: `You are a general legal AI assistant specializing in Hungarian energy law.
+        
+        Context: ${contextData}
+        Question: ${baseQuestion}
+        
+        Provide comprehensive legal guidance covering all aspects of energy law.
+        Always cite specific legal sources with clickable links.`
+      };
 
-    // Generate answer using Claude AI
+      return agentPrompts[type] || agentPrompts.general;
+    };
+
+    // Generate answer using Claude AI with agent-specific prompt
     const claudeStartTime = performance.now();
     const claudeApiKey = Deno.env.get('CLAUDE_API_KEY');
     if (!claudeApiKey) {
       throw new Error('Claude API key not configured');
     }
+
+    const agentPrompt = getAgentPrompt(agentType, question, context);
 
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -146,28 +189,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'user',
-            content: `You are a legal AI assistant specializing in Hungarian energy law. 
-            
-Context from uploaded documents:
-${context}
-
-Question: ${question}
-
-Please provide a comprehensive answer based on the context provided. If the context doesn't contain relevant information, provide general guidance about Hungarian energy law. 
-
-IMPORTANT: When citing laws or regulations, ALWAYS include clickable links to official sources:
-- For Hungarian laws and regulations: https://net.jogtar.hu/ (search for the specific law number)
-- For EU directives and regulations: https://eur-lex.europa.eu/ (search for the specific directive/regulation)
-- For MEKH decisions and regulations: https://mekh.hu/
-- For official publications: https://magyarkozlony.hu/
-
-Format your citations like this:
-- "2007. évi LXXXVI. törvény a villamos energiáról (VET) [https://net.jogtar.hu/jogszabaly?docid=A0700086.TV]"
-- "EU Directive 2019/944 [https://eur-lex.europa.eu/legal-content/HU/TXT/?uri=CELEX:32019L0944]"
-
-Always cite specific sources when available and provide direct links to the referenced legal documents.
-
-Answer in Hungarian.`
+            content: agentPrompt
           }
         ],
       }),
@@ -176,28 +198,11 @@ Answer in Hungarian.`
     if (!claudeResponse.ok) {
       const errorText = await claudeResponse.text();
       console.error('Claude API error:', errorText);
-      
-      // Track Claude error
-      await supabaseClient.from('performance_metrics').insert({
-        metric_type: 'claude_error',
-        metric_value: performance.now() - claudeStartTime,
-        metadata: { error: errorText }
-      });
-      
       throw new Error(`Claude API failed: ${claudeResponse.status}`);
     }
 
     const claudeData = await claudeResponse.json();
     const claudeTime = performance.now() - claudeStartTime;
-    
-    // Track Claude performance
-    await supabaseClient.from('performance_metrics').insert({
-      metric_type: 'claude_response_time',
-      metric_value: claudeTime,
-      metadata: { model: 'claude-3-haiku-20240307' }
-    });
-
-    console.log('Claude response structure:', JSON.stringify(claudeData, null, 2));
 
     if (!claudeData.content || !claudeData.content[0] || !claudeData.content[0].text) {
       console.error('Invalid Claude response structure:', claudeData);
@@ -207,7 +212,7 @@ Answer in Hungarian.`
     const answer = claudeData.content[0].text;
 
     // Extract sources from search results and add official legal sources
-    const documentSources = searchResults?.map((result: any) => result.document_title) || [];
+    const documentSources = finalSearchResults?.map((result: any) => result.document_title) || [];
     const legalSources = [
       'Magyar Közlöny - https://magyarkozlony.hu/',
       'Nemzeti Jogszabálytár - https://net.jogtar.hu/',
@@ -216,17 +221,19 @@ Answer in Hungarian.`
     ];
     
     const allSources = [...documentSources, ...legalSources];
-    const confidence = searchResults?.length > 0 ? Math.min(95, 75 + searchResults.length * 5) : 60;
+    const finalConfidence = finalSearchResults?.length > 0 ? Math.min(95, 75 + finalSearchResults.length * 5) : confidence;
 
-    // Save Q&A session to database
+    // Save Q&A session to database with agent information
     const { data: sessionData, error: sessionError } = await supabaseClient
       .from('qa_sessions')
       .insert({
         question,
         answer,
         sources: Array.from(new Set(allSources)),
-        confidence,
+        confidence: finalConfidence,
         user_id: userId,
+        agent_type: agentType,
+        conversation_context: conversationContext
       })
       .select()
       .single();
@@ -238,36 +245,38 @@ Answer in Hungarian.`
 
     const totalTime = performance.now() - startTime;
     
-    // Track overall API performance
-    await supabaseClient.from('performance_metrics').insert({
-      metric_type: 'api_response_time',
-      metric_value: totalTime,
-      metadata: { 
-        endpoint: 'ai-question-answer',
-        embedding_time: embeddingTime,
-        search_time: searchTime,
-        claude_time: claudeTime
+    // Track performance metrics
+    await supabaseClient.from('performance_metrics').insert([
+      {
+        metric_type: 'api_response_time',
+        metric_value: totalTime,
+        metadata: { 
+          endpoint: 'ai-question-answer',
+          agent_type: agentType,
+          embedding_time: embeddingTime,
+          claude_time: claudeTime
+        }
+      },
+      {
+        metric_type: 'embedding_time',
+        metric_value: embeddingTime,
+        metadata: { model: 'text-embedding-ada-002' }
+      },
+      {
+        metric_type: 'claude_response_time',
+        metric_value: claudeTime,
+        metadata: { model: 'claude-3-haiku-20240307', agent_type: agentType }
       }
-    });
+    ]);
 
-    // Track cost (estimated)
-    const estimatedCost = (embeddingData.usage?.total_tokens || 100) * 0.0001 + 
-                         (claudeData.usage?.output_tokens || 200) * 0.002;
-    
-    await supabaseClient.from('cost_tracking').insert({
-      service_type: 'ai_apis',
-      cost_amount: estimatedCost,
-      usage_units: (embeddingData.usage?.total_tokens || 0) + (claudeData.usage?.output_tokens || 0),
-      cost_per_unit: 0.001,
-      user_id: userId
-    });
-
-    console.log('Successfully saved Q&A session');
+    console.log('Successfully saved Q&A session with agent:', agentType);
 
     return new Response(
       JSON.stringify({
         success: true,
         session: sessionData,
+        agentType: agentType,
+        confidence: finalConfidence
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -277,18 +286,6 @@ Answer in Hungarian.`
   } catch (error) {
     const totalTime = performance.now() - startTime;
     
-    // Track error performance
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
-    
-    await supabaseClient.from('performance_metrics').insert({
-      metric_type: 'api_error',
-      metric_value: totalTime,
-      metadata: { error: error.message }
-    });
-
     console.error('Error in ai-question-answer function:', error);
     return new Response(
       JSON.stringify({ 

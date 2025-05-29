@@ -261,8 +261,10 @@ export type Database = {
       }
       qa_sessions: {
         Row: {
+          agent_type: string | null
           answer: string
           confidence: number | null
+          conversation_context: Json | null
           created_at: string | null
           id: string
           question: string
@@ -270,8 +272,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agent_type?: string | null
           answer: string
           confidence?: number | null
+          conversation_context?: Json | null
           created_at?: string | null
           id?: string
           question: string
@@ -279,8 +283,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agent_type?: string | null
           answer?: string
           confidence?: number | null
+          conversation_context?: Json | null
           created_at?: string | null
           id?: string
           question?: string

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedSearch } from '@/hooks/useOptimizedSearch';
 import { optimizedDocumentService } from '@/services/optimizedDocumentService';
+import { conversationContextManager } from '@/services/conversationContext';
 import { toast } from 'sonner';
 import { QuestionInput } from './QuestionInput';
 import { SuggestedQuestions } from './SuggestedQuestions';
@@ -16,6 +17,8 @@ interface QASession {
   sources: string[];
   confidence: number;
   created_at: string;
+  agent_type?: string;
+  conversation_context?: any;
 }
 
 export function QuestionAnswer() {
@@ -48,7 +51,7 @@ export function QuestionAnswer() {
     }
   };
 
-  const handleQuestionSubmit = async (question: string) => {
+  const handleQuestionSubmit = async (question: string, agentType?: string, conversationContext?: any) => {
     if (!user) return;
 
     setIsLoading(true);
@@ -68,13 +71,31 @@ export function QuestionAnswer() {
           question: question,
           userId: user.id,
           searchResults: searchResults.chunks || [],
-          confidence: confidence
+          confidence: confidence,
+          agentType: agentType || 'general',
+          conversationContext: conversationContext || {}
         },
       });
 
       if (error) throw error;
 
       if (data.success) {
+        // Update conversation context with the new message
+        const newMessage = {
+          id: data.session.id,
+          question: data.session.question,
+          answer: data.session.answer,
+          agentType: data.session.agent_type || agentType || 'general',
+          timestamp: new Date(),
+          sources: data.session.sources || []
+        };
+
+        conversationContextManager.updateContext(
+          user.id, 
+          newMessage, 
+          conversationContext?.userRole || 'jogász'
+        );
+
         setSessions(prev => [data.session, ...prev]);
         toast.success('Kérdés sikeresen feldolgozva');
       } else {

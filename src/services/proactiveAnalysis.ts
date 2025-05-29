@@ -3,120 +3,194 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface ProactiveRecommendation {
   id: string;
-  type: 'contract_review' | 'compliance_alert' | 'legal_update' | 'risk_assessment';
   title: string;
   description: string;
-  priority: 'low' | 'medium' | 'high';
-  actionable: boolean;
-  relatedDocuments: string[];
-  createdAt: Date;
+  priority: 'high' | 'medium' | 'low';
+  category: 'efficiency' | 'risk' | 'compliance' | 'opportunity';
+  actionUrl?: string;
+  estimatedImpact?: string;
 }
 
 class ProactiveAnalysisService {
   async generateRecommendations(userId: string): Promise<ProactiveRecommendation[]> {
-    const recommendations: ProactiveRecommendation[] = [];
+    try {
+      // Fetch recent user activity
+      const { data: recentSessions } = await supabase
+        .from('qa_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-    // Analyze recent document uploads
-    const recentDocuments = await this.getRecentDocuments(userId);
-    
-    // Check for contracts that need review
-    const contractReviews = await this.analyzeContractsForReview(recentDocuments);
-    recommendations.push(...contractReviews);
+      // Fetch user's document interactions
+      const { data: documents } = await supabase
+        .from('documents')
+        .select('type, metadata, created_at')
+        .eq('uploaded_by', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
 
-    // Check for compliance issues
-    const complianceAlerts = await this.generateComplianceAlerts(userId);
-    recommendations.push(...complianceAlerts);
+      // Analyze patterns and generate recommendations
+      const recommendations: ProactiveRecommendation[] = [];
 
-    // Check for legal updates
-    const legalUpdates = await this.checkForLegalUpdates();
-    recommendations.push(...legalUpdates);
+      // Analyze question patterns
+      if (recentSessions && recentSessions.length > 0) {
+        const questionTopics = this.analyzeQuestionTopics(recentSessions);
+        recommendations.push(...this.generateTopicBasedRecommendations(questionTopics));
+      }
 
-    return recommendations.sort((a, b) => {
-      const priorityOrder = { high: 3, medium: 2, low: 1 };
-      return priorityOrder[b.priority] - priorityOrder[a.priority];
-    });
+      // Analyze document patterns
+      if (documents && documents.length > 0) {
+        const documentPatterns = this.analyzeDocumentPatterns(documents);
+        recommendations.push(...this.generateDocumentBasedRecommendations(documentPatterns));
+      }
+
+      // Add general recommendations if no specific patterns found
+      if (recommendations.length === 0) {
+        recommendations.push(...this.getGeneralRecommendations());
+      }
+
+      return recommendations.slice(0, 6); // Limit to 6 recommendations
+    } catch (error) {
+      console.error('Error generating proactive recommendations:', error);
+      return this.getGeneralRecommendations();
+    }
   }
 
-  private async getRecentDocuments(userId: string) {
-    const { data, error } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('uploaded_by', userId)
-      .gte('upload_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-      .order('upload_date', { ascending: false });
+  private analyzeQuestionTopics(sessions: any[]): string[] {
+    const topics: string[] = [];
+    
+    sessions.forEach(session => {
+      const question = session.question.toLowerCase();
+      
+      if (question.includes('szerződés') || question.includes('contract')) {
+        topics.push('contract');
+      }
+      if (question.includes('megfelelőség') || question.includes('compliance')) {
+        topics.push('compliance');
+      }
+      if (question.includes('energia') || question.includes('energy')) {
+        topics.push('energy');
+      }
+      if (question.includes('jog') || question.includes('legal')) {
+        topics.push('legal');
+      }
+    });
 
-    if (error) {
-      console.error('Error fetching recent documents:', error);
-      return [];
+    return [...new Set(topics)]; // Remove duplicates
+  }
+
+  private analyzeDocumentPatterns(documents: any[]): string[] {
+    const patterns: string[] = [];
+    
+    documents.forEach(doc => {
+      patterns.push(doc.type);
+    });
+
+    return [...new Set(patterns)];
+  }
+
+  private generateTopicBasedRecommendations(topics: string[]): ProactiveRecommendation[] {
+    const recommendations: ProactiveRecommendation[] = [];
+
+    if (topics.includes('contract')) {
+      recommendations.push({
+        id: 'contract-analysis',
+        title: 'Szerződés Elemzés Optimalizálás',
+        description: 'A legutóbbi szerződéses kérdései alapján javasoljuk automatizált szerződés elemzés beállítását.',
+        priority: 'high',
+        category: 'efficiency',
+        actionUrl: '/contract-analysis',
+        estimatedImpact: '30% időmegtakarítás'
+      });
     }
 
-    return data || [];
-  }
+    if (topics.includes('compliance')) {
+      recommendations.push({
+        id: 'compliance-monitoring',
+        title: 'Megfelelőségi Monitoring',
+        description: 'Állítson be proaktív megfelelőségi figyelmeztető rendszert a gyakori kérdései alapján.',
+        priority: 'medium',
+        category: 'compliance',
+        estimatedImpact: 'Kockázat csökkentés'
+      });
+    }
 
-  private async analyzeContractsForReview(documents: any[]): Promise<ProactiveRecommendation[]> {
-    const contracts = documents.filter(doc => doc.type === 'szerződés');
-    const recommendations: ProactiveRecommendation[] = [];
-
-    for (const contract of contracts) {
-      // Simple heuristic: contracts uploaded more than 7 days ago might need review
-      const uploadDate = new Date(contract.upload_date);
-      const daysSinceUpload = (Date.now() - uploadDate.getTime()) / (1000 * 60 * 60 * 24);
-
-      if (daysSinceUpload > 7) {
-        recommendations.push({
-          id: `contract-review-${contract.id}`,
-          type: 'contract_review',
-          title: `Szerződés áttekintés javasolt: ${contract.title}`,
-          description: 'Ez a szerződés már egy hete fel van töltve, de még nem történt alapos elemzés. Javasoljuk a kockázatelemzés elvégzését.',
-          priority: 'medium',
-          actionable: true,
-          relatedDocuments: [contract.id],
-          createdAt: new Date()
-        });
-      }
+    if (topics.includes('energy')) {
+      recommendations.push({
+        id: 'energy-law-updates',
+        title: 'Energiajogi Frissítések',
+        description: 'Iratkozzon fel az energiajogi változások automatikus értesítéseire.',
+        priority: 'medium',
+        category: 'opportunity',
+        estimatedImpact: 'Naprakész jogismeret'
+      });
     }
 
     return recommendations;
   }
 
-  private async generateComplianceAlerts(userId: string): Promise<ProactiveRecommendation[]> {
-    // Check for common compliance issues based on document content
-    const { data: analyses, error } = await supabase
-      .from('contract_analyses')
-      .select('*')
-      .eq('analyzed_by', userId)
-      .eq('risk_level', 'high')
-      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+  private generateDocumentBasedRecommendations(patterns: string[]): ProactiveRecommendation[] {
+    const recommendations: ProactiveRecommendation[] = [];
 
-    if (error || !analyses || analyses.length === 0) {
-      return [];
+    if (patterns.includes('szerződés')) {
+      recommendations.push({
+        id: 'contract-templates',
+        title: 'Szerződés Sablonok',
+        description: 'Hozzon létre szabványosított szerződés sablonokat a feltöltött dokumentumok alapján.',
+        priority: 'medium',
+        category: 'efficiency',
+        estimatedImpact: '50% gyorsabb szerződéskészítés'
+      });
     }
 
-    return [{
-      id: 'compliance-alert-high-risk',
-      type: 'compliance_alert',
-      title: 'Magas kockázatú szerződések észlelve',
-      description: `${analyses.length} szerződés tartalmaz magas kockázatú elemeket. Azonnali áttekintés szükséges.`,
-      priority: 'high',
-      actionable: true,
-      relatedDocuments: analyses.map(a => a.contract_id).filter(Boolean),
-      createdAt: new Date()
-    }];
+    if (patterns.includes('rendelet')) {
+      recommendations.push({
+        id: 'regulation-tracking',
+        title: 'Rendelet Követés',
+        description: 'Automatikus értesítés beállítása a releváns rendeletek változásairól.',
+        priority: 'high',
+        category: 'compliance',
+        estimatedImpact: '100% megfelelőség'
+      });
+    }
+
+    return recommendations;
   }
 
-  private async checkForLegalUpdates(): Promise<ProactiveRecommendation[]> {
-    // In a real implementation, this would check external legal databases
-    // For now, we'll return a mock recommendation
-    return [{
-      id: 'legal-update-energy',
-      type: 'legal_update',
-      title: 'Új energiajogi rendelet hatályba lépése',
-      description: 'A MEKH új rendelete változásokat hoz az energiaszerződések területén. Ellenőrizze a meglévő szerződéseket.',
-      priority: 'medium',
-      actionable: true,
-      relatedDocuments: [],
-      createdAt: new Date()
-    }];
+  private getGeneralRecommendations(): ProactiveRecommendation[] {
+    return [
+      {
+        id: 'document-upload',
+        title: 'Dokumentum Feltöltés',
+        description: 'Töltse fel energiajogi dokumentumait a személyre szabott elemzésekért.',
+        priority: 'medium',
+        category: 'opportunity',
+        actionUrl: '/documents',
+        estimatedImpact: 'Pontosabb válaszok'
+      },
+      {
+        id: 'ai-training',
+        title: 'AI Rendszer Betanítás',
+        description: 'Segítsen betanítani az AI rendszert specifikus kérdésekkel.',
+        priority: 'low',
+        category: 'efficiency',
+        actionUrl: '/qa',
+        estimatedImpact: 'Jobb AI teljesítmény'
+      }
+    ];
+  }
+
+  async trackRecommendationClick(recommendationId: string, userId: string): Promise<void> {
+    try {
+      await supabase.from('analytics_events').insert({
+        user_id: userId,
+        event_type: 'recommendation_clicked',
+        event_data: { recommendation_id: recommendationId }
+      });
+    } catch (error) {
+      console.error('Error tracking recommendation click:', error);
+    }
   }
 }
 
