@@ -8,7 +8,7 @@ export interface OfficialSource {
 }
 
 export class OfficialSourceService {
-  private static sources: OfficialSource[] = [
+  private sources: OfficialSource[] = [
     {
       name: 'Magyar Közlöny',
       url: 'https://magyarkozlony.hu/',
@@ -53,11 +53,11 @@ export class OfficialSourceService {
     }
   ];
 
-  static getAllSources(): OfficialSource[] {
+  getAllSources(): OfficialSource[] {
     return this.sources;
   }
 
-  static detectSourcesInText(text: string): { source: OfficialSource; matches: string[] }[] {
+  detectSourcesInText(text: string): { source: OfficialSource; matches: string[] }[] {
     const results: { source: OfficialSource; matches: string[] }[] = [];
     
     this.sources.forEach(source => {
@@ -79,7 +79,7 @@ export class OfficialSourceService {
     return results;
   }
 
-  static linkifyOfficialSources(text: string): string {
+  linkifyOfficialSources(text: string): string {
     let linkedText = text;
     
     this.sources.forEach(source => {
@@ -94,7 +94,7 @@ export class OfficialSourceService {
     return linkedText;
   }
 
-  static extractUrlFromText(text: string): string[] {
+  extractUrlFromText(text: string): string[] {
     const urlRegex = /(https?:\/\/[^\s\)]+)/g;
     return text.match(urlRegex) || [];
   }
