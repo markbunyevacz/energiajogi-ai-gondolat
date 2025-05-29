@@ -1,7 +1,7 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User } from '@supabase/supabase-js';
+import { extractTextFromPDF, isValidTextContent, sanitizeTextContent } from './pdfTextExtractor';
 
 type DocumentType = 'szerződés' | 'rendelet' | 'szabályzat' | 'törvény' | 'határozat' | 'egyéb';
 
@@ -48,16 +48,50 @@ export const uploadToSupabase = async (
 
     updateProgress(file.id, 80, 'processing');
 
-    // Extract text content (simplified - in real implementation you'd use proper text extraction)
-    const reader = new FileReader();
-    const content = await new Promise<string>((resolve) => {
-      reader.onload = () => resolve(reader.result as string);
-      reader.readAsText(file.file!);
-    });
+    let content = '';
+    
+    try {
+      // Check if it's a PDF file
+      if (file.file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        console.log('Processing PDF file:', file.name);
+        content = await extractTextFromPDF(file.file);
+      } else {
+        // Handle text files
+        const reader = new FileReader();
+        content = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+            try {
+              const result = reader.result as string;
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsText(file.file!);
+        });
+      }
+
+      // Sanitize the content to prevent database errors
+      content = sanitizeTextContent(content);
+      
+      // Validate content
+      if (!isValidTextContent(content)) {
+        throw new Error('Érvénytelen szöveg tartalom');
+      }
+
+      console.log('Extracted content length:', content.length);
+      console.log('Content preview:', content.substring(0, 200));
+
+    } catch (textError) {
+      console.error('Text extraction failed:', textError);
+      // Fallback content if text extraction fails
+      content = `Dokumentum: ${file.name}. Szöveg kivonás sikertelen, de a fájl feltöltésre került.`;
+    }
 
     updateProgress(file.id, 90, 'ai-processing');
 
-    // Save to database
+    // Save to database with better error handling
     const { data: documentData, error: dbError } = await supabase
       .from('documents')
       .insert({
@@ -68,7 +102,9 @@ export const uploadToSupabase = async (
         content: content,
         metadata: {
           source: source || 'Dokumentum feltöltés',
-          keywords: keywords ? keywords.split(',').map(k => k.trim()) : []
+          keywords: keywords ? keywords.split(',').map(k => k.trim()) : [],
+          original_filename: file.name,
+          content_type: file.file.type
         }
       })
       .select()
@@ -77,7 +113,7 @@ export const uploadToSupabase = async (
     if (dbError) {
       console.error('Database error:', dbError);
       updateProgress(file.id, 0, 'error');
-      toast.error('Hiba a dokumentum mentésekor');
+      toast.error(`Adatbázis hiba: ${dbError.message}`);
       return;
     }
 
@@ -88,7 +124,8 @@ export const uploadToSupabase = async (
   } catch (error) {
     console.error('Upload error:', error);
     updateProgress(file.id, 0, 'error');
-    toast.error(`Hiba ${file.name} feltöltésekor`);
+    const errorMessage = error instanceof Error ? error.message : 'Ismeretlen hiba';
+    toast.error(`Hiba ${file.name} feltöltésekor: ${errorMessage}`);
   }
 };
 
