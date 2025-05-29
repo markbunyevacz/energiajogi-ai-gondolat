@@ -6,7 +6,6 @@ import { DashboardStatsComponent } from "@/components/Dashboard/DashboardStats";
 import { RecentActivity } from "@/components/Dashboard/RecentActivity";
 import { QuestionAnswer } from "@/components/QA/QuestionAnswer";
 import { DocumentUpload } from "@/components/Documents/DocumentUpload";
-import { ContractAnalysisDashboard } from "@/components/Analysis/ContractAnalysisDashboard";
 import { ITDashboard } from "@/components/Dashboard/ITDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
@@ -66,7 +65,6 @@ const Index = () => {
         tabs: [
           { value: 'qa', label: 'Kérdés-Válasz' },
           { value: 'upload', label: 'Dokumentumok' },
-          { value: 'analysis', label: 'Szerződés Elemzés' },
           { value: 'it-dashboard', label: 'IT Dashboard' },
           { value: 'activity', label: 'Aktivitás' }
         ]
@@ -78,7 +76,6 @@ const Index = () => {
       tabs: [
         { value: 'qa', label: 'Kérdés-Válasz' },
         { value: 'upload', label: 'Dokumentumok' },
-        { value: 'analysis', label: 'Szerződés Elemzés' },
         { value: 'activity', label: 'Aktivitás' }
       ]
     };
@@ -113,7 +110,7 @@ const Index = () => {
 
             {/* Main Content Tabs */}
             <Tabs defaultValue={tabConfig.defaultTab} className="space-y-6">
-              <TabsList className={`grid w-full max-w-2xl ${tabConfig.tabs.length === 5 ? 'grid-cols-5' : 'grid-cols-4'}`}>
+              <TabsList className={`grid w-full max-w-md ${tabConfig.tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 {tabConfig.tabs.map(tab => (
                   <TabsTrigger key={tab.value} value={tab.value}>
                     {tab.label}
@@ -127,10 +124,6 @@ const Index = () => {
 
               <TabsContent value="upload" className="space-y-6">
                 <DocumentUpload />
-              </TabsContent>
-
-              <TabsContent value="analysis" className="space-y-6">
-                <ContractAnalysisDashboard />
               </TabsContent>
 
               {(profile?.role === 'it_vezető' || profile?.role === 'tulajdonos') && (

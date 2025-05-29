@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, CheckCircle, AlertCircle, X, Brain, Shield, Eye } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, X, Brain } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -33,19 +34,6 @@ interface StoredDocument {
   upload_date: string;
   file_path: string;
   content: string | null;
-  // Processing status indicators
-  hasTextExtraction?: boolean;
-  hasEmbeddings?: boolean;
-  hasAnalysis?: boolean;
-  analysisId?: string;
-}
-
-interface ProcessingStatus {
-  textExtraction: boolean;
-  structuredDataExtraction: boolean;
-  claudeAnalysis: boolean;
-  jsonParsing: boolean;
-  visualization: boolean;
 }
 
 export function DocumentUpload() {
@@ -77,80 +65,14 @@ export function DocumentUpload() {
 
     const { data, error } = await supabase
       .from('documents')
-      .select(`
-        id, 
-        title, 
-        type, 
-        file_size, 
-        upload_date, 
-        file_path, 
-        content,
-        contract_analyses(id)
-      `)
+      .select('id, title, type, file_size, upload_date, file_path, content')
       .order('upload_date', { ascending: false });
 
     if (error) {
       console.error('Error fetching documents:', error);
     } else {
-      const documentsWithStatus = (data || []).map(doc => ({
-        ...doc,
-        hasTextExtraction: !!doc.content,
-        hasEmbeddings: true, // Assume embeddings are created if document exists
-        hasAnalysis: doc.contract_analyses && doc.contract_analyses.length > 0,
-        analysisId: doc.contract_analyses?.[0]?.id
-      }));
-      setStoredDocuments(documentsWithStatus);
+      setStoredDocuments(data || []);
     }
-  };
-
-  const getProcessingStatus = (document: StoredDocument): ProcessingStatus => {
-    return {
-      textExtraction: !!document.content,
-      structuredDataExtraction: !!document.content,
-      claudeAnalysis: !!document.hasAnalysis,
-      jsonParsing: !!document.hasAnalysis,
-      visualization: !!document.hasAnalysis
-    };
-  };
-
-  const renderProcessingStatus = (document: StoredDocument) => {
-    const status = getProcessingStatus(document);
-    const steps = [
-      { key: 'textExtraction', label: 'Szöveg kinyerés', icon: FileText },
-      { key: 'structuredDataExtraction', label: 'Strukturált adatok', icon: FileText },
-      { key: 'claudeAnalysis', label: 'Claude AI elemzés', icon: Brain },
-      { key: 'jsonParsing', label: 'JSON parsing', icon: FileText },
-      { key: 'visualization', label: 'Vizualizáció', icon: Eye }
-    ];
-
-    return (
-      <div className="space-y-2 mt-3">
-        <div className="text-xs font-medium text-gray-700">Feldolgozási állapot:</div>
-        <div className="grid grid-cols-5 gap-1">
-          {steps.map(({ key, label, icon: Icon }) => {
-            const isCompleted = status[key as keyof ProcessingStatus];
-            return (
-              <div
-                key={key}
-                className={`flex flex-col items-center p-2 rounded text-xs ${
-                  isCompleted 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-gray-100 text-gray-500'
-                }`}
-                title={label}
-              >
-                {isCompleted ? (
-                  <CheckCircle className="w-3 h-3 mb-1" />
-                ) : (
-                  <Icon className="w-3 h-3 mb-1" />
-                )}
-                <span className="text-center leading-tight">{label}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
   };
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -302,8 +224,7 @@ export function DocumentUpload() {
 
       if (data.success) {
         toast.success('Szerződés elemzése befejezve');
-        // Refresh documents to update analysis status
-        fetchStoredDocuments();
+        // You could navigate to analysis view or show results
       } else {
         throw new Error(data.error || 'Ismeretlen hiba');
       }
@@ -534,55 +455,39 @@ export function DocumentUpload() {
               {storedDocuments.map(doc => (
                 <div
                   key={doc.id}
-                  className="flex flex-col space-y-4 p-4 border rounded-lg hover:bg-gray-50"
+                  className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-gray-50"
                 >
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      <FileText className="w-5 h-5 text-blue-600" />
+                  <div className="flex-shrink-0">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {doc.title}
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline">
+                          {doc.type}
+                        </Badge>
+                        {doc.type === 'szerződés' && doc.content && (
+                          <Button
+                            size="sm"
+                            onClick={() => analyzeContract(doc)}
+                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                          >
+                            <Brain className="w-4 h-4 mr-1" />
+                            Elemzés
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {doc.title}
-                        </p>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="outline">
-                            {doc.type}
-                          </Badge>
-                          {doc.type === 'szerződés' && doc.content && (
-                            <Button
-                              size="sm"
-                              onClick={() => analyzeContract(doc)}
-                              className="bg-purple-600 hover:bg-purple-700 text-white"
-                              disabled={doc.hasAnalysis}
-                            >
-                              <Brain className="w-4 h-4 mr-1" />
-                              {doc.hasAnalysis ? 'Elemezve' : 'Elemzés'}
-                            </Button>
-                          )}
-                          {doc.hasAnalysis && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => window.open(`#analysis/${doc.analysisId}`, '_blank')}
-                            >
-                              <Shield className="w-4 h-4 mr-1" />
-                              Eredmények
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
-                        <span>{formatFileSize(doc.file_size)}</span>
-                        <span>{new Date(doc.upload_date).toLocaleDateString('hu-HU')}</span>
-                      </div>
+                    <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
+                      <span>{formatFileSize(doc.file_size)}</span>
+                      <span>{new Date(doc.upload_date).toLocaleDateString('hu-HU')}</span>
                     </div>
                   </div>
-
-                  {/* Processing Status */}
-                  {renderProcessingStatus(doc)}
                 </div>
               ))}
             </div>
