@@ -73,7 +73,7 @@ export function useContractAnalysis() {
         .from('documents')
         .select('id, title, type, file_size, upload_date, content')
         .eq('type', 'szerződés')
-        .eq('uploaded_by', user.id)  // Explicitly filter by user ID
+        .eq('uploaded_by', user.id)
         .order('upload_date', { ascending: false });
 
       if (error) {
@@ -107,17 +107,22 @@ export function useContractAnalysis() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Function invoke error:', error);
+        toast.error('Hiba a szerződés elemzésekor: Ellenőrizze a Claude API kulcsot');
+        return;
+      }
 
-      if (data.success) {
+      if (data?.success) {
         toast.success('Szerződés elemzése befejezve');
         fetchAnalyses();
       } else {
-        throw new Error(data.error || 'Ismeretlen hiba');
+        console.error('Analysis failed:', data);
+        toast.error(data?.error || 'Ismeretlen hiba történt az elemzés során');
       }
     } catch (error) {
       console.error('Analysis error:', error);
-      toast.error('Hiba a szerződés elemzésekor');
+      toast.error('Hiba a szerződés elemzésekor: Ellenőrizze a Claude API kulcsot');
     }
   };
 

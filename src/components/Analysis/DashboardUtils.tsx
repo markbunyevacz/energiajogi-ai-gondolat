@@ -26,8 +26,8 @@ export const filterAnalyses = (
   filterRisk: string
 ): ContractAnalysis[] => {
   let filtered = analyses.filter(analysis => {
-    const contractIdMatch = analysis.contractId?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
-    const summaryMatch = analysis.summary?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+    const contractIdMatch = analysis.contractId?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false;
+    const summaryMatch = analysis.summary?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false;
     return contractIdMatch || summaryMatch;
   });
 
@@ -39,7 +39,16 @@ export const filterAnalyses = (
 };
 
 export const exportAnalysis = (analysis: ContractAnalysis): void => {
+  // Generate a proper filename
+  const getFileName = () => {
+    if (analysis.contractId && analysis.contractId !== 'null') {
+      return `contract-analysis-${analysis.contractId}.json`;
+    }
+    return `contract-analysis-${analysis.id.slice(0, 8)}.json`;
+  };
+
   const exportData = {
+    id: analysis.id,
     contractId: analysis.contractId,
     riskLevel: analysis.riskLevel,
     summary: analysis.summary,
@@ -52,7 +61,7 @@ export const exportAnalysis = (analysis: ContractAnalysis): void => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `contract-analysis-${analysis.contractId}.json`;
+  link.download = getFileName();
   link.click();
   URL.revokeObjectURL(url);
 };

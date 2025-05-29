@@ -51,13 +51,21 @@ export function AnalysisListItem({ analysis, onSelect, onExport }: AnalysisListI
     }
   };
 
+  // Generate a proper display name for the contract
+  const getContractDisplayName = () => {
+    if (analysis.contractId && analysis.contractId !== 'null') {
+      return analysis.contractId;
+    }
+    return `Elemzés-${analysis.id.slice(0, 8)}`;
+  };
+
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="pt-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <FileText className="w-5 h-5 text-blue-600" />
-            <h3 className="font-medium">{analysis.contractId || 'Ismeretlen szerződés'}</h3>
+            <h3 className="font-medium">{getContractDisplayName()}</h3>
             <Badge className={getRiskBadgeClass(analysis.riskLevel)}>
               {getRiskLabel(analysis.riskLevel)} kockázat
             </Badge>
