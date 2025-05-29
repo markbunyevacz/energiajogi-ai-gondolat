@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, CheckCircle, AlertCircle, X, Brain } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, X, Brain, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 type DocumentType = 'szerződés' | 'rendelet' | 'szabályzat' | 'törvény' | 'határozat' | 'egyéb';
 
@@ -44,6 +44,7 @@ export function DocumentUpload() {
   const [keywords, setKeywords] = useState('');
   const [source, setSource] = useState('');
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const documentTypes: { value: DocumentType; label: string }[] = [
     { value: 'szerződés', label: 'Szerződés' },
@@ -224,7 +225,8 @@ export function DocumentUpload() {
 
       if (data.success) {
         toast.success('Szerződés elemzése befejezve');
-        // You could navigate to analysis view or show results
+        // Navigate to contract analysis page to view results
+        navigate('/contract-analysis');
       } else {
         throw new Error(data.error || 'Ismeretlen hiba');
       }
@@ -232,6 +234,10 @@ export function DocumentUpload() {
       console.error('Analysis error:', error);
       toast.error('Hiba a szerződés elemzésekor');
     }
+  };
+
+  const navigateToAnalysis = () => {
+    navigate('/contract-analysis');
   };
 
   const updateFileProgress = (fileId: string, progress: number, status: UploadedFile['status']) => {
@@ -448,7 +454,17 @@ export function DocumentUpload() {
       {storedDocuments.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Tárolt Dokumentumok ({storedDocuments.length})</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Tárolt Dokumentumok ({storedDocuments.length})</CardTitle>
+              <Button 
+                onClick={navigateToAnalysis}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Brain className="w-4 h-4 mr-1" />
+                Szerződéselemzés oldal
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -471,14 +487,24 @@ export function DocumentUpload() {
                           {doc.type}
                         </Badge>
                         {doc.type === 'szerződés' && doc.content && (
-                          <Button
-                            size="sm"
-                            onClick={() => analyzeContract(doc)}
-                            className="bg-purple-600 hover:bg-purple-700 text-white"
-                          >
-                            <Brain className="w-4 h-4 mr-1" />
-                            Elemzés
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => analyzeContract(doc)}
+                              className="bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                              <Brain className="w-4 h-4 mr-1" />
+                              Elemzés
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={navigateToAnalysis}
+                            >
+                              <ArrowRight className="w-4 h-4 mr-1" />
+                              Elemzés oldal
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -490,6 +516,33 @@ export function DocumentUpload() {
                   </div>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Contract Analysis Call-to-Action */}
+      {storedDocuments.some(doc => doc.type === 'szerződés') && (
+        <Card className="border-purple-200 bg-purple-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Brain className="w-8 h-8 text-purple-600" />
+                <div>
+                  <h3 className="font-medium text-purple-900">Szerződéselemzés Elérhető</h3>
+                  <p className="text-sm text-purple-700">
+                    {storedDocuments.filter(doc => doc.type === 'szerződés').length} szerződés elemzésre kész
+                  </p>
+                </div>
+              </div>
+              <Button 
+                onClick={navigateToAnalysis}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Brain className="w-4 h-4 mr-1" />
+                Elemzés Indítása
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
             </div>
           </CardContent>
         </Card>

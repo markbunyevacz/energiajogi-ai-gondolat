@@ -1,153 +1,107 @@
+
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Bell, Settings, LogOut, User, Shield } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { LogOut, User, Settings, Brain, Home } from 'lucide-react';
 
 export function Header() {
-  const { profile, logout } = useAuth();
-  const [notifications] = useState([
-    { id: 1, title: 'Új dokumentum elemzés', message: 'Energiaszerződés elemzés befejezve', unread: true },
-    { id: 2, title: 'Rendszer frissítés', message: 'Új funkciók érhetők el', unread: false }
-  ]);
+  const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success('Sikeresen kijelentkezett');
-    } catch (error) {
-      toast.error('Hiba a kijelentkezés során');
-    }
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
   };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'jogász': return 'Jogász';
-      case 'it_vezető': return 'IT Vezető';
-      case 'tulajdonos': return 'Tulajdonos';
-      default: return role;
-    }
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'jogász': return 'bg-blue-100 text-blue-800';
-      case 'it_vezető': return 'bg-green-100 text-green-800';
-      case 'tulajdonos': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const unreadCount = notifications.filter(n => n.unread).length;
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-8">
+    <header className="border-b border-gray-200 bg-white shadow-sm">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-6">
             <Link to="/" className="flex items-center space-x-2">
-              <Shield className="w-8 h-8 text-mav-blue" />
-              <span className="text-xl font-bold text-gray-900">LegalAI</span>
+              <div className="w-8 h-8 bg-mav-blue rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">AI</span>
+              </div>
+              <span className="font-semibold text-xl text-gray-900">
+                Jogi AI Asszisztens
+              </span>
             </Link>
             
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link 
-                to="/" 
-                className="text-gray-700 hover:text-mav-blue transition-colors"
-              >
-                Dashboard
-              </Link>
-              <Link 
-                to="/contract-analysis" 
-                className="text-gray-700 hover:text-mav-blue transition-colors"
-              >
-                Szerződéselemzés
-              </Link>
-            </nav>
+            {user && (
+              <nav className="hidden md:flex items-center space-x-4">
+                <Link to="/">
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-1">
+                    <Home className="w-4 h-4" />
+                    <span>Főoldal</span>
+                  </Button>
+                </Link>
+                <Link to="/contract-analysis">
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-1">
+                    <Brain className="w-4 h-4" />
+                    <span>Szerződéselemzés</span>
+                  </Button>
+                </Link>
+              </nav>
+            )}
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Notifications */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="relative">
-                  <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <Badge 
-                      variant="destructive" 
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs p-0"
-                    >
-                      {unreadCount}
-                    </Badge>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>Értesítések</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {notifications.map((notification) => (
-                  <DropdownMenuItem key={notification.id} className="flex flex-col items-start p-4">
-                    <div className="flex items-center justify-between w-full">
-                      <span className="font-medium text-sm">{notification.title}</span>
-                      {notification.unread && (
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      )}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={profile?.avatar_url} alt={profile?.name} />
+                      <AvatarFallback>
+                        {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">{profile?.name}</p>
+                      <p className="w-[200px] truncate text-sm text-muted-foreground">
+                        {profile?.email}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {profile?.role === 'jogász' && 'Jogász'}
+                        {profile?.role === 'it_vezető' && 'IT Vezető'}
+                        {profile?.role === 'tulajdonos' && 'Tulajdonos'}
+                      </p>
                     </div>
-                    <span className="text-sm text-gray-600">{notification.message}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center space-x-2 hover:bg-gray-100">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={profile?.avatar_url} />
-                    <AvatarFallback className="bg-mav-blue text-white">
-                      {profile?.name?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start">
-                    <span className="text-sm font-medium">{profile?.name || 'Felhasználó'}</span>
-                    <Badge 
-                      variant="secondary" 
-                      className={`text-xs ${getRoleColor(profile?.role || 'jogász')}`}
-                    >
-                      {getRoleLabel(profile?.role || 'jogász')}
-                    </Badge>
                   </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Fiók kezelése</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profil</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Beállítások</span>
-                </DropdownMenuItem>
-                {(profile?.role === 'it_vezető' || profile?.role === 'tulajdonos') && (
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem>
-                    <Shield className="mr-2 h-4 w-4" />
-                    <span>Adminisztráció</span>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profil</span>
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Kijelentkezés</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Beállítások</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Kijelentkezés</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/auth">
+                <Button>Bejelentkezés</Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>
