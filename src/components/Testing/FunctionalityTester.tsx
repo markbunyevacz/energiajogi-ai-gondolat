@@ -10,6 +10,12 @@ interface FunctionalityTesterProps {
   onTestResult: (result: Omit<TestResult, 'id' | 'timestamp'>) => void;
 }
 
+interface TestFunctionResult {
+  success: boolean;
+  message: string;
+  details?: any;
+}
+
 export function FunctionalityTester({ onTestResult }: FunctionalityTesterProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -19,17 +25,21 @@ export function FunctionalityTester({ onTestResult }: FunctionalityTesterProps) 
       name: 'Felhasználói regisztráció',
       category: 'authentication' as const,
       duration: 1000,
-      test: async () => {
+      test: async (): Promise<TestFunctionResult> => {
         // Simulate registration test
         await new Promise(resolve => setTimeout(resolve, 1000));
-        return { success: true, message: 'Regisztráció minden szerepkörrel sikeres' };
+        return { 
+          success: true, 
+          message: 'Regisztráció minden szerepkörrel sikeres',
+          details: { usersCreated: 3, rolesAssigned: ['admin', 'user', 'viewer'] }
+        };
       }
     },
     {
       name: 'Dokumentum feltöltés életciklus',
       category: 'documents' as const,
       duration: 2000,
-      test: async () => {
+      test: async (): Promise<TestFunctionResult> => {
         // Simulate document upload lifecycle
         await new Promise(resolve => setTimeout(resolve, 2000));
         return { 
@@ -43,7 +53,7 @@ export function FunctionalityTester({ onTestResult }: FunctionalityTesterProps) 
       name: 'Szerződéselemzés teljes folyamat',
       category: 'contracts' as const,
       duration: 3000,
-      test: async () => {
+      test: async (): Promise<TestFunctionResult> => {
         await new Promise(resolve => setTimeout(resolve, 3000));
         return { 
           success: true, 
@@ -56,7 +66,7 @@ export function FunctionalityTester({ onTestResult }: FunctionalityTesterProps) 
       name: 'AI ágensek kommunikáció',
       category: 'agents' as const,
       duration: 1500,
-      test: async () => {
+      test: async (): Promise<TestFunctionResult> => {
         await new Promise(resolve => setTimeout(resolve, 1500));
         return { 
           success: true, 
@@ -69,7 +79,7 @@ export function FunctionalityTester({ onTestResult }: FunctionalityTesterProps) 
       name: 'Dashboard adatok megjelenítése',
       category: 'performance' as const,
       duration: 800,
-      test: async () => {
+      test: async (): Promise<TestFunctionResult> => {
         await new Promise(resolve => setTimeout(resolve, 800));
         return { 
           success: true, 
@@ -82,7 +92,7 @@ export function FunctionalityTester({ onTestResult }: FunctionalityTesterProps) 
       name: 'Cross-browser kompatibilitás',
       category: 'performance' as const,
       duration: 2500,
-      test: async () => {
+      test: async (): Promise<TestFunctionResult> => {
         await new Promise(resolve => setTimeout(resolve, 2500));
         return { 
           success: true, 
