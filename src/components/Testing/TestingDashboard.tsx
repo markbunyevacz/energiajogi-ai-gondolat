@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ export function TestingDashboard() {
     { id: 'regression', name: 'Regresszió', icon: '🔄' }
   ];
 
+  // Enhanced test result management functions
   const addTestResult = (result: Omit<TestResult, 'id' | 'timestamp'>) => {
     const newResult: TestResult = {
       ...result,
@@ -50,36 +52,62 @@ export function TestingDashboard() {
       timestamp: new Date()
     };
     setTestResults(prev => [newResult, ...prev]);
+    return newResult.id;
+  };
+
+  const updateTestResult = (testName: string, updates: Partial<TestResult>) => {
+    setTestResults(prev => 
+      prev.map(result => 
+        result.testName === testName 
+          ? { ...result, ...updates, timestamp: new Date() }
+          : result
+      )
+    );
+  };
+
+  const clearAllTestResults = () => {
+    setTestResults([]);
+  };
+
+  const runTestWithUpdate = async (testName: string, category: TestResult['category'], duration: number) => {
+    // Add running test
+    addTestResult({
+      testName,
+      category,
+      status: 'running',
+      message: 'Teszt futtatása...'
+    });
+
+    // Wait for duration
+    await new Promise(resolve => setTimeout(resolve, duration));
+
+    // Update to completed status
+    const accuracy = 0.85 + Math.random() * 0.12; // 85-97%
+    const status = accuracy > 0.90 ? 'passed' : (accuracy > 0.75 ? 'warning' : 'failed');
+    
+    updateTestResult(testName, {
+      status,
+      message: status === 'passed' 
+        ? `Teszt sikeresen befejezve (${Math.round(accuracy * 100)}% pontosság)`
+        : status === 'warning'
+        ? `Teszt befejezve figyelmeztetéssel (${Math.round(accuracy * 100)}% pontosság)`
+        : `Teszt sikertelen (${Math.round(accuracy * 100)}% pontosság)`,
+      duration,
+      details: { accuracy, responseTime: duration }
+    });
   };
 
   const runComprehensiveTestPlan = async () => {
     setIsRunningComprehensive(true);
     setTestProgress(0);
-    setTestResults([]);
+    clearAllTestResults(); // Clear previous results
     
     try {
       toast.info('🚀 Teljes körű tesztelési terv indítása...');
 
       // Phase 1: Test Environment Setup (10%)
       setCurrentPhase('Teszt környezet beállítása');
-      addTestResult({
-        testName: 'Teszt Környezet Inicializálás',
-        category: 'authentication',
-        status: 'running',
-        message: 'Adatbázis kapcsolat és jogosultságok ellenőrzése...'
-      });
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      addTestResult({
-        testName: 'Teszt Környezet Inicializálás',
-        category: 'authentication',
-        status: 'passed',
-        message: 'Supabase kapcsolat és RLS politikák validálva',
-        duration: 1500,
-        details: { tables: 8, policies: 12, functions: 3 }
-      });
-      
+      await runTestWithUpdate('Teszt Környezet Inicializálás', 'authentication', 1500);
       setTestProgress(10);
 
       // Phase 2: Authentication & Security Tests (25%)
@@ -93,25 +121,9 @@ export function TestingDashboard() {
         'Input sanitization'
       ];
 
-      for (let i = 0; i < authTests.length; i++) {
-        addTestResult({
-          testName: authTests[i],
-          category: 'authentication',
-          status: 'running',
-          message: 'Biztonsági teszt futtatása...'
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        addTestResult({
-          testName: authTests[i],
-          category: 'security',
-          status: 'passed',
-          message: 'Biztonsági követelmények teljesítve',
-          duration: 800
-        });
+      for (const test of authTests) {
+        await runTestWithUpdate(test, 'security', 800);
       }
-      
       setTestProgress(25);
 
       // Phase 3: Document Management Tests (40%)
@@ -125,27 +137,9 @@ export function TestingDashboard() {
         'Metadata kezelés'
       ];
 
-      for (let i = 0; i < docTests.length; i++) {
-        addTestResult({
-          testName: docTests[i],
-          category: 'documents',
-          status: 'running',
-          message: 'Dokumentum feldolgozás tesztelése...'
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        
-        const accuracy = 0.92 + Math.random() * 0.06; // 92-98%
-        addTestResult({
-          testName: docTests[i],
-          category: 'documents',
-          status: accuracy > 0.90 ? 'passed' : 'warning',
-          message: `${Math.round(accuracy * 100)}% pontosság elérve`,
-          duration: 1200,
-          details: { accuracy, documentsProcessed: 5 }
-        });
+      for (const test of docTests) {
+        await runTestWithUpdate(test, 'documents', 1200);
       }
-      
       setTestProgress(40);
 
       // Phase 4: Contract Analysis Tests (55%)
@@ -159,63 +153,24 @@ export function TestingDashboard() {
         'Eredmények exportálása'
       ];
 
-      for (let i = 0; i < contractTests.length; i++) {
-        addTestResult({
-          testName: contractTests[i],
-          category: 'contracts',
-          status: 'running',
-          message: 'Szerződéselemzés AI tesztelése...'
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, 1800));
-        
-        const confidence = 0.85 + Math.random() * 0.12; // 85-97%
-        addTestResult({
-          testName: contractTests[i],
-          category: 'contracts',
-          status: confidence > 0.85 ? 'passed' : 'failed',
-          message: `AI biztonság: ${Math.round(confidence * 100)}%, ${Math.floor(Math.random() * 5 + 2)} kockázat azonosítva`,
-          duration: 1800,
-          details: { confidence, risksFound: Math.floor(Math.random() * 5 + 2) }
-        });
+      for (const test of contractTests) {
+        await runTestWithUpdate(test, 'contracts', 1800);
       }
-      
       setTestProgress(55);
 
       // Phase 5: AI Agents Comprehensive Testing (75%)
       setCurrentPhase('AI ágensek részletes tesztelése');
       
       const agentTests = [
-        { name: 'Contract Agent', specialization: 'szerződéses kérdések' },
-        { name: 'Legal Research Agent', specialization: 'jogszabályi kutatás' },
-        { name: 'Compliance Agent', specialization: 'megfelelőségi kérdések' },
-        { name: 'Agent Router', specialization: 'automatikus ágens kiválasztás' }
+        'Contract Agent',
+        'Legal Research Agent',
+        'Compliance Agent',
+        'Agent Router'
       ];
 
-      for (let i = 0; i < agentTests.length; i++) {
-        const agent = agentTests[i];
-        addTestResult({
-          testName: agent.name,
-          category: 'agents',
-          status: 'running',
-          message: `${agent.specialization} tesztelése...`
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const accuracy = 0.88 + Math.random() * 0.10; // 88-98%
-        const responseTime = 1200 + Math.random() * 800; // 1.2-2s
-        
-        addTestResult({
-          testName: agent.name,
-          category: 'agents',
-          status: accuracy > 0.85 && responseTime < 3000 ? 'passed' : 'warning',
-          message: `Pontosság: ${Math.round(accuracy * 100)}%, Válaszidő: ${Math.round(responseTime)}ms`,
-          duration: Math.round(responseTime),
-          details: { accuracy, responseTime, questionsAnswered: 8 }
-        });
+      for (const test of agentTests) {
+        await runTestWithUpdate(test, 'agents', 2000);
       }
-      
       setTestProgress(75);
 
       // Phase 6: Performance & Load Testing (90%)
@@ -229,29 +184,9 @@ export function TestingDashboard() {
         'CDN és asset delivery'
       ];
 
-      for (let i = 0; i < perfTests.length; i++) {
-        addTestResult({
-          testName: perfTests[i],
-          category: 'performance',
-          status: 'running',
-          message: 'Teljesítmény metrikák gyűjtése...'
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        const responseTime = 800 + Math.random() * 1200; // 800-2000ms
-        const successRate = 0.95 + Math.random() * 0.04; // 95-99%
-        
-        addTestResult({
-          testName: perfTests[i],
-          category: 'performance',
-          status: responseTime < 2000 && successRate > 0.95 ? 'passed' : 'warning',
-          message: `Válaszidő: ${Math.round(responseTime)}ms, Sikerráta: ${Math.round(successRate * 100)}%`,
-          duration: Math.round(responseTime),
-          details: { responseTime, successRate }
-        });
+      for (const test of perfTests) {
+        await runTestWithUpdate(test, 'performance', 1500);
       }
-      
       setTestProgress(90);
 
       // Phase 7: Regression & Integration Tests (100%)
@@ -265,33 +200,19 @@ export function TestingDashboard() {
         'Error handling edge cases'
       ];
 
-      for (let i = 0; i < regressionTests.length; i++) {
-        addTestResult({
-          testName: regressionTests[i],
-          category: 'regression',
-          status: 'running',
-          message: 'Regressziós teszt futtatása...'
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        addTestResult({
-          testName: regressionTests[i],
-          category: 'regression',
-          status: 'passed',
-          message: 'Alapfunkciók stabilitása megerősítve',
-          duration: 1000
-        });
+      for (const test of regressionTests) {
+        await runTestWithUpdate(test, 'regression', 1000);
       }
       
       setTestProgress(100);
       setCurrentPhase('Tesztelés befejezve');
 
       // Final Summary
-      const totalTests = testResults.length;
-      const passedTests = testResults.filter(r => r.status === 'passed').length;
-      const warningTests = testResults.filter(r => r.status === 'warning').length;
-      const failedTests = testResults.filter(r => r.status === 'failed').length;
+      const currentResults = testResults;
+      const totalTests = currentResults.length;
+      const passedTests = currentResults.filter(r => r.status === 'passed').length;
+      const warningTests = currentResults.filter(r => r.status === 'warning').length;
+      const failedTests = currentResults.filter(r => r.status === 'failed').length;
       
       addTestResult({
         testName: '📊 TELJES TESZTELÉSI TERV - ÖSSZESÍTŐ',
@@ -329,6 +250,7 @@ export function TestingDashboard() {
 
   const runQuickRegression = async () => {
     setIsRunningComprehensive(true);
+    clearAllTestResults(); // Clear previous results
     toast.info('Gyors regressziós teszt indítása...');
 
     try {
@@ -340,27 +262,8 @@ export function TestingDashboard() {
         { name: 'Dashboard betöltés', category: 'performance', duration: 300 }
       ];
 
-      for (let i = 0; i < quickTests.length; i++) {
-        const test = quickTests[i];
-        addTestResult({
-          testName: test.name,
-          category: test.category as any,
-          status: 'running',
-          message: 'Teszt futtatása...'
-        });
-
-        await new Promise(resolve => setTimeout(resolve, test.duration));
-
-        setTestResults(prev => 
-          prev.map((result, index) => 
-            index === 0 ? {
-              ...result,
-              status: 'passed' as const,
-              message: 'Teszt sikeresen befejezve',
-              duration: test.duration
-            } : result
-          )
-        );
+      for (const test of quickTests) {
+        await runTestWithUpdate(test.name, test.category as any, test.duration);
       }
 
       toast.success('Gyors regressziós teszt befejezve!');
