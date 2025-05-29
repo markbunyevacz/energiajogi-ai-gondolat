@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +46,25 @@ export function QASessionCard({ session }: QASessionCardProps) {
     if (confidence >= 80) return 'Magas megbízhatóság';
     if (confidence >= 60) return 'Közepes megbízhatóság';
     return 'Alacsony megbízhatóság';
+  };
+
+  const officialSources = {
+    'Magyar Közlöny': 'https://magyarkozlony.hu/',
+    'Nemzeti Jogszabálytár': 'https://net.jogtar.hu/',
+    'MEKH': 'https://mekh.hu/',
+    'EUR-Lex': 'https://eur-lex.europa.eu/homepage.html',
+    'Energetikai és Közműszabályozási Hivatal': 'https://mekh.hu/',
+    'Magyar Energetikai és Közműszabályozási Hivatal': 'https://mekh.hu/'
+  };
+
+  const getOfficialSourceUrl = (source: string): string | null => {
+    // Check if the source contains any official source name
+    for (const [sourceName, url] of Object.entries(officialSources)) {
+      if (source.toLowerCase().includes(sourceName.toLowerCase())) {
+        return url;
+      }
+    }
+    return null;
   };
 
   const isUrl = (text: string): boolean => {
@@ -112,14 +130,18 @@ export function QASessionCard({ session }: QASessionCardProps) {
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {session.sources.map((source, index) => {
-                    const url = extractUrlFromSource(source);
+                    const existingUrl = extractUrlFromSource(source);
+                    const officialUrl = getOfficialSourceUrl(source);
                     const displayName = getSourceDisplayName(source);
                     
-                    if (url) {
+                    // Priority: existing URL in source, then official source mapping
+                    const targetUrl = existingUrl || officialUrl;
+                    
+                    if (targetUrl) {
                       return (
                         <a
                           key={index}
-                          href={url}
+                          href={targetUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center"
