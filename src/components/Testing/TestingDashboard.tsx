@@ -206,30 +206,39 @@ export function TestingDashboard() {
 
       setCurrentPhase('Tesztelés befejezve');
 
-      // Final Summary with updated results
-      const totalTests = allTests.length;
-      const passedTests = testResults.filter(r => r.status === 'passed').length;
-      const warningTests = testResults.filter(r => r.status === 'warning').length;
-      const failedTests = testResults.filter(r => r.status === 'failed').length;
-      
-      addTestResult({
-        testName: '📊 TELJES TESZTELÉSI TERV - ÖSSZESÍTŐ',
-        category: 'regression',
-        status: failedTests === 0 ? (warningTests < 2 ? 'passed' : 'warning') : 'failed',
-        message: `✅ ${passedTests} sikeres, ⚠️ ${warningTests} figyelmeztetés, ❌ ${failedTests} sikertelen (${totalTests} tesztből)`,
-        details: { 
-          totalTests, 
-          passedTests, 
-          warningTests, 
-          failedTests,
-          overallSuccessRate: ((passedTests + warningTests) / totalTests * 100).toFixed(1) + '%',
-          testCoverage: '98%',
-          performanceScore: 'Kiváló',
-          securityRating: 'AAA'
-        }
+      // Wait a bit for state updates to complete before calculating final summary
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Final Summary with updated results - calculate from current test results
+      setTestResults(currentResults => {
+        const totalTests = allTests.length;
+        const passedTests = currentResults.filter(r => r.status === 'passed').length;
+        const warningTests = currentResults.filter(r => r.status === 'warning').length;
+        const failedTests = currentResults.filter(r => r.status === 'failed').length;
+        
+        const summaryResult: TestResult = {
+          id: Math.random().toString(36).substr(2, 9),
+          testName: '📊 TELJES TESZTELÉSI TERV - ÖSSZESÍTŐ',
+          category: 'regression',
+          status: failedTests === 0 ? (warningTests < 2 ? 'passed' : 'warning') : 'failed',
+          message: `✅ ${passedTests} sikeres, ⚠️ ${warningTests} figyelmeztetés, ❌ ${failedTests} sikertelen (${totalTests} tesztből)`,
+          timestamp: new Date(),
+          details: { 
+            totalTests, 
+            passedTests, 
+            warningTests, 
+            failedTests,
+            overallSuccessRate: ((passedTests + warningTests) / totalTests * 100).toFixed(1) + '%',
+            testCoverage: '98%',
+            performanceScore: 'Kiváló',
+            securityRating: 'AAA'
+          }
+        };
+
+        console.log(`Comprehensive test completed. Total: ${totalTests}, Passed: ${passedTests}, Warnings: ${warningTests}, Failed: ${failedTests}`);
+        return [summaryResult, ...currentResults];
       });
 
-      console.log(`Comprehensive test completed. Total: ${totalTests}, Passed: ${passedTests}, Warnings: ${warningTests}, Failed: ${failedTests}`);
       toast.success('🎉 Teljes körű tesztelési terv sikeresen befejezve!');
 
     } catch (error) {
