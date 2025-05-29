@@ -48,9 +48,9 @@ serve(async (req) => {
       throw new Error('A Claude API kulcs nincs beállítva. Kérjük, állítsa be a CLAUDE_API_KEY titkos kulcsot a Supabase projektben.');
     }
 
-    console.log('Sending request to Claude API with claude-opus-4-20250514 model...');
+    console.log('Sending request to Claude API with claude-3-5-sonnet model...');
 
-    // Analyze contract using Claude AI with updated model
+    // Analyze contract using Claude AI with correct model
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -59,7 +59,7 @@ serve(async (req) => {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-20250514',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 2000,
         messages: [
           {
