@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, XCircle, Clock, AlertTriangle, Play, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { TestAccountManager } from './TestAccountManager';
+import { TestDataGenerator } from './TestDataGenerator';
 import { FunctionalityTester } from './FunctionalityTester';
 import { PerformanceTester } from './PerformanceTester';
 import { RegressionTester } from './RegressionTester';
@@ -410,8 +411,9 @@ export function TestingDashboard() {
       )}
 
       <Tabs defaultValue="results" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="results">Eredmények</TabsTrigger>
+          <TabsTrigger value="data">Teszt Adatok</TabsTrigger>
           <TabsTrigger value="accounts">Teszt Fiókok</TabsTrigger>
           <TabsTrigger value="functionality">Funkcionalitás</TabsTrigger>
           <TabsTrigger value="performance">Teljesítmény</TabsTrigger>
@@ -482,6 +484,10 @@ export function TestingDashboard() {
               ))
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="data">
+          <TestDataGenerator />
         </TabsContent>
 
         <TabsContent value="accounts">

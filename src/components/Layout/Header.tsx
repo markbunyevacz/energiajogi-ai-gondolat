@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, User, Settings, Brain, Home } from 'lucide-react';
+import { LogOut, User, Settings, Brain, Home, TestTube } from 'lucide-react';
 
 export function Header() {
   const { user, profile, logout } = useAuth();
@@ -49,6 +50,14 @@ export function Header() {
                     <span>Szerződéselemzés</span>
                   </Button>
                 </Link>
+                {(profile?.role === 'it_vezető' || profile?.role === 'tulajdonos') && (
+                  <Link to="/testing">
+                    <Button variant="ghost" size="sm" className="flex items-center space-x-1">
+                      <TestTube className="w-4 h-4" />
+                      <span>Tesztelés</span>
+                    </Button>
+                  </Link>
+                )}
               </nav>
             )}
           </div>

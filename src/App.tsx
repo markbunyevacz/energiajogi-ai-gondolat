@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ContractAnalysisPage from "./pages/ContractAnalysis";
+import Testing from "./pages/Testing";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ function App() {
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Index />} />
             <Route path="/contract-analysis" element={<ContractAnalysisPage />} />
+            <Route path="/testing" element={<Testing />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
