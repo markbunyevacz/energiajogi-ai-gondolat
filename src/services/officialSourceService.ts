@@ -1,3 +1,4 @@
+
 export interface OfficialSource {
   name: string;
   url: string;
@@ -52,11 +53,11 @@ export class OfficialSourceService {
     }
   ];
 
-  public static getAllSources(): OfficialSource[] {
+  static getAllSources(): OfficialSource[] {
     return this.sources;
   }
 
-  public static detectSourcesInText(text: string): { source: OfficialSource; matches: string[] }[] {
+  static detectSourcesInText(text: string): { source: OfficialSource; matches: string[] }[] {
     const results: { source: OfficialSource; matches: string[] }[] = [];
     
     this.sources.forEach(source => {
@@ -78,7 +79,7 @@ export class OfficialSourceService {
     return results;
   }
 
-  public static linkifyOfficialSources(text: string): string {
+  static linkifyOfficialSources(text: string): string {
     let linkedText = text;
     
     this.sources.forEach(source => {
@@ -93,8 +94,10 @@ export class OfficialSourceService {
     return linkedText;
   }
 
-  public static extractUrlFromText(text: string): string[] {
+  static extractUrlFromText(text: string): string[] {
     const urlRegex = /(https?:\/\/[^\s\)]+)/g;
     return text.match(urlRegex) || [];
   }
 }
+
+export const officialSourceService = new OfficialSourceService();

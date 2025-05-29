@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedSearch } from '@/hooks/useOptimizedSearch';
 import { optimizedDocumentService } from '@/services/optimizedDocumentService';
-import { OfficialSourceService, type OfficialSource } from '@/services/officialSourceService';
+import { officialSourceService } from '@/services/officialSourceService';
 import { toast } from 'sonner';
 
 interface QASession {
@@ -38,56 +38,10 @@ export function QuestionAnswer() {
     'Hogyan lehet panaszt tenni az energiaszolgáltató ellen?'
   ];
 
-  // Use a simpler approach for legal sources to avoid service issues
-  const legalSources: OfficialSource[] = [
-    {
-      name: 'Magyar Közlöny',
-      url: 'https://magyarkozlony.hu/',
-      description: 'Hivatalos lap',
-      keywords: ['magyar közlöny', 'mk.', 'magyarkozlony.hu'],
-      category: 'official'
-    },
-    {
-      name: 'Nemzeti Jogszabálytár',
-      url: 'https://net.jogtar.hu/',
-      description: 'Jogszabályok',
-      keywords: ['jogtar.hu', 'net.jogtar.hu', 'jogszabálytár', 'törvény', 'rendelet'],
-      category: 'legal'
-    },
-    {
-      name: 'MEKH',
-      url: 'https://mekh.hu/',
-      description: 'Magyar Energetikai és Közmű-szabályozási Hivatal',
-      keywords: ['mekh.hu', 'mekh', 'energetikai hivatal', 'közmű-szabályozási'],
-      category: 'regulatory'
-    },
-    {
-      name: 'EUR-Lex',
-      url: 'https://eur-lex.europa.eu/',
-      description: 'EU jogszabályok',
-      keywords: ['eur-lex.europa.eu', 'eur-lex', 'európai unió', 'eu jogszabály'],
-      category: 'legal'
-    },
-    {
-      name: 'Kormány.hu',
-      url: 'https://kormany.hu/',
-      description: 'Magyar Kormány hivatalos oldala',
-      keywords: ['kormany.hu', 'kormány', 'minisztérium'],
-      category: 'official'
-    },
-    {
-      name: 'MVH',
-      url: 'https://www.mvh.allamkincstar.gov.hu/',
-      description: 'Magyar Államkincstár',
-      keywords: ['mvh', 'államkincstár', 'allamkincstar.gov.hu'],
-      category: 'official'
-    }
-  ];
+  const legalSources = officialSourceService.getAllSources();
 
   useEffect(() => {
-    console.log('QuestionAnswer component mounted');
     if (user) {
-      console.log('User found, fetching sessions');
       fetchSessions();
     }
   }, [user]);
@@ -95,24 +49,17 @@ export function QuestionAnswer() {
   const fetchSessions = async () => {
     if (!user) return;
 
-    try {
-      console.log('Fetching sessions for user:', user.id);
-      const { data, error } = await supabase
-        .from('qa_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('qa_sessions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching sessions:', error);
-        toast.error('Hiba a korábbi kérdések betöltésekor');
-      } else {
-        console.log('Sessions fetched successfully:', data?.length);
-        setSessions(data || []);
-      }
-    } catch (error) {
-      console.error('Exception in fetchSessions:', error);
+    if (error) {
+      console.error('Error fetching sessions:', error);
       toast.error('Hiba a korábbi kérdések betöltésekor');
+    } else {
+      setSessions(data || []);
     }
   };
 
@@ -120,7 +67,6 @@ export function QuestionAnswer() {
     e.preventDefault();
     if (!question.trim() || !user) return;
 
-    console.log('Submitting question:', question);
     setIsLoading(true);
     
     try {
@@ -132,7 +78,6 @@ export function QuestionAnswer() {
       const sources = searchResults.chunks.map(chunk => `Dokumentum ${chunk.document_id}`);
       const confidence = optimizedDocumentService.calculateConfidence(searchResults, sources);
 
-      console.log('Calling AI Q&A function');
       // Call the AI Q&A edge function with improved context
       const { data, error } = await supabase.functions.invoke('ai-question-answer', {
         body: {
@@ -143,12 +88,8 @@ export function QuestionAnswer() {
         },
       });
 
-      if (error) {
-        console.error('Edge function error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('AI response received:', data);
       if (data.success) {
         setSessions(prev => [data.session, ...prev]);
         setQuestion('');
@@ -198,31 +139,9 @@ export function QuestionAnswer() {
     return 'Alacsony megbízhatóság';
   };
 
-  const detectSourcesInText = (text: string): { source: OfficialSource; matches: string[] }[] => {
-    const results: { source: OfficialSource; matches: string[] }[] = [];
-    
-    legalSources.forEach(source => {
-      const matches: string[] = [];
-      
-      source.keywords.forEach(keyword => {
-        const regex = new RegExp(keyword, 'gi');
-        const textMatches = text.match(regex);
-        if (textMatches) {
-          matches.push(...textMatches);
-        }
-      });
-      
-      if (matches.length > 0) {
-        results.push({ source, matches });
-      }
-    });
-    
-    return results;
-  };
-
   const renderAnswerWithLinks = (answer: string): JSX.Element => {
     // Detect and link official sources
-    const detectedSources = detectSourcesInText(answer);
+    const detectedSources = officialSourceService.detectSourcesInText(answer);
     let linkedAnswer = answer;
     
     // Replace detected sources with links
@@ -264,8 +183,6 @@ export function QuestionAnswer() {
     }
     return source;
   };
-
-  console.log('Rendering QuestionAnswer component');
 
   return (
     <div className="space-y-6">
