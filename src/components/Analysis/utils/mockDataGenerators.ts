@@ -1,21 +1,24 @@
 import { Risk } from '@/types';
 
 export const generateMockRisks = () => {
-  const allRisks = [
+  const allRisks: Risk[] = [
     {
       id: 'risk-1',
       description: 'Felmondási feltételek egyoldalúan a szolgáltató javára szólnak',
-      level: 'high' as const
+      level: 'high' as const,
+      type: 'contract_termination'
     },
     {
       id: 'risk-2',
       description: 'Késedelmi kamat mértéke magasabb a jogszabályi maximumnál',
-      level: 'medium' as const
+      level: 'medium' as const,
+      type: 'financial'
     },
     {
       id: 'risk-3',
       description: 'Értesítési kötelezettségek nem szimmetrikusak',
-      level: 'low' as const
+      level: 'low' as const,
+      type: 'notification'
     }
   ];
   
