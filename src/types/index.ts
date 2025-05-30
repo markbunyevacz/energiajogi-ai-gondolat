@@ -54,25 +54,24 @@ export interface ContractAnalysis {
   id: string;
   title: string;
   description: string;
-  status: 'pending' | 'processing' | 'completed' | 'error';
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   created_at: string;
-  contractId?: string;
-  riskLevel: 'high' | 'medium' | 'low';
-  summary?: string;
-  risks?: Array<{
-    id: string;
-    description: string;
-    level: 'high' | 'medium' | 'low';
-  }>;
-  timestamp: string;
+  contractId: string | null;
+  riskLevel: 'low' | 'medium' | 'high';
+  summary: string;
+  recommendations: string[];
+  timestamp: string | null;
+  risks: Risk[];
 }
 
 export interface Risk {
+  id: string;
+  description: string;
+  level: 'low' | 'medium' | 'high';
   type: 'legal' | 'financial' | 'operational';
   severity: 'low' | 'medium' | 'high';
-  description: string;
-  recommendation: string;
-  section?: string;
+  recommendation: string | null;
+  section: string | null;
 }
 
 export interface DashboardStats {
@@ -83,4 +82,13 @@ export interface DashboardStats {
   costSavings?: number;
   apiUsage?: number;
   userActivity?: number;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  profile: Profile | null;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
