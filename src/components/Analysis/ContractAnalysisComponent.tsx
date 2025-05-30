@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ContractAnalysis } from '@/types';
+import type { ContractAnalysis } from '@/types';
 import { ContractInput } from './ContractInput';
 import { ContractAnalysisResults } from './ContractAnalysisResults';
 import { generateMockRisks, generateMockRecommendations } from './utils/mockDataGenerators';

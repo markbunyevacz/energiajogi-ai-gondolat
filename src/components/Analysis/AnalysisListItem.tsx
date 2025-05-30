@@ -12,6 +12,10 @@ interface AnalysisListItemProps {
   onExport: (analysis: ContractAnalysis) => void;
 }
 
+interface AnalysisProcessingStepsProps {
+  analysis: ContractAnalysis;
+}
+
 export function AnalysisListItem({ analysis, onSelect, onExport }: AnalysisListItemProps) {
   const getRiskLevelColor = (level: string) => {
     switch (level) {

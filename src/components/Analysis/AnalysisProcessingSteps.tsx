@@ -1,8 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import type { ContractAnalysis } from '@/types';
 
-export function AnalysisProcessingSteps() {
+interface AnalysisProcessingStepsProps {
+  analysis: ContractAnalysis;
+}
+
+export function AnalysisProcessingSteps({ analysis }: AnalysisProcessingStepsProps) {
   const steps = [
     {
       id: '1',

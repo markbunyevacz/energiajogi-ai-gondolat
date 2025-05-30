@@ -109,23 +109,7 @@ class AIAgentRouter {
    * @returns A summary of key clauses.
    */
   public async extractAndSummarizeClauses(contractText: string): Promise<string> {
-    try {
-      const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: 'You are a legal contract analysis assistant.' },
-          { role: 'user', content: `Extract and summarize the key clauses from this contract:\n${contractText}` }
-        ]
-      }, {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data.choices[0].message.content;
-    } catch (error) {
-      return 'Hiba történt a szerződés elemzése során.';
-    }
+    return 'Hiba történt a szerződés elemzése során.';
   }
 
   /**
@@ -136,18 +120,18 @@ class AIAgentRouter {
   public async highlightRisksOrMissingElements(contractText: string): Promise<string> {
     try {
       const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-        model: 'gpt-4.1-2025-04-14',
+        model: 'claude-sonnet-4-20250514',
         messages: [
           { 
             role: 'system', 
             content: `You are a legal contract analysis assistant specializing in risk assessment. 
                      Analyze the contract and identify potential risks, missing elements, or unclear clauses.
                      Focus on:
-                     - Missing essential clauses
+                     - Missing essential clauses (e.g., termination, liability, governing law)
                      - Unclear or ambiguous terms
                      - Compliance risks (GDPR, MEKH, etc.)
-                     - Financial risks
-                     - Operational risks
+                     - Financial risks (e.g., payment terms, penalties)
+                     - Operational risks (e.g., delivery, performance)
                      Format your response in Hungarian, with each risk on a new line.`
           },
           { 
@@ -161,6 +145,7 @@ class AIAgentRouter {
           'Content-Type': 'application/json'
         }
       });
+
       return response.data.choices[0].message.content;
     } catch (error) {
       console.error('Error analyzing contract risks:', error);
@@ -169,19 +154,22 @@ class AIAgentRouter {
           throw new ContractAnalysisError(
             'Hiba történt a szerződés kockázatelemzése során.',
             ErrorCodes.API_ERROR,
+            'error',
             { status: error.response.status, data: error.response.data }
           );
         } else if (error.request) {
           throw new ContractAnalysisError(
             'Hálózati hiba történt a szerződés kockázatelemzése során.',
             ErrorCodes.NETWORK_ERROR,
+            'error',
             { request: error.request }
           );
         }
       }
       throw new ContractAnalysisError(
         'Ismeretlen hiba történt a szerződés kockázatelemzése során.',
-        ErrorCodes.RISK_ANALYSIS_FAILED,
+        ErrorCodes.CONTRACT_ANALYSIS_ERROR,
+        'error',
         { originalError: error }
       );
     }
@@ -195,18 +183,18 @@ class AIAgentRouter {
   public async suggestImprovementsOrComplianceChecks(contractText: string): Promise<string> {
     try {
       const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-        model: 'gpt-4.1-2025-04-14',
+        model: 'claude-sonnet-4-20250514',
         messages: [
           { 
             role: 'system', 
             content: `You are a legal contract improvement specialist. 
                      Analyze the contract and suggest specific improvements and compliance enhancements.
                      Focus on:
-                     - Legal compliance improvements
-                     - Clarity and precision enhancements
-                     - Risk mitigation suggestions
-                     - Best practice recommendations
-                     - Industry-specific improvements
+                     - Legal compliance improvements (e.g., GDPR, MEKH, industry regulations)
+                     - Clarity and precision enhancements (e.g., ambiguous terms, definitions)
+                     - Risk mitigation suggestions (e.g., liability, indemnification)
+                     - Best practice recommendations (e.g., standard clauses, industry norms)
+                     - Industry-specific improvements (e.g., sector-specific requirements)
                      Format your response in Hungarian, with each suggestion on a new line.`
           },
           { 
@@ -220,6 +208,7 @@ class AIAgentRouter {
           'Content-Type': 'application/json'
         }
       });
+
       return response.data.choices[0].message.content;
     } catch (error) {
       console.error('Error suggesting contract improvements:', error);
@@ -228,19 +217,22 @@ class AIAgentRouter {
           throw new ContractAnalysisError(
             'Hiba történt a javaslatok generálása során.',
             ErrorCodes.API_ERROR,
+            'error',
             { status: error.response.status, data: error.response.data }
           );
         } else if (error.request) {
           throw new ContractAnalysisError(
             'Hálózati hiba történt a javaslatok generálása során.',
             ErrorCodes.NETWORK_ERROR,
+            'error',
             { request: error.request }
           );
         }
       }
       throw new ContractAnalysisError(
         'Ismeretlen hiba történt a javaslatok generálása során.',
-        ErrorCodes.IMPROVEMENT_SUGGESTION_FAILED,
+        ErrorCodes.CONTRACT_ANALYSIS_ERROR,
+        'error',
         { originalError: error }
       );
     }
@@ -284,14 +276,14 @@ export const extractTextFromImage = async (imageDataUrl: string): Promise<string
 
 export const extractTextFromPDF = async (file: File): Promise<string> => {
   try {
-    // Try simple text extraction first (existing logic)
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-
-    // Simple text extraction using pdfjs
     const pdf = await getDocument({ data: uint8Array }).promise;
+    
     let text = '';
     let textMatches: string[] = [];
+    
+    // Try simple text extraction first
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const content = await page.getTextContent();
@@ -300,15 +292,16 @@ export const extractTextFromPDF = async (file: File): Promise<string> => {
       text += pageText + '\n';
     }
 
-    // If text extraction fails or is mostly non-text, fallback to OCR
+    // Check if text extraction was successful
     const isMostlyNonText = (text: string) => {
       return (text.replace(/[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű0-9]/g, '').length < 30);
     };
 
     if (isMostlyNonText(text)) {
-      // Limit to first 3 pages for performance (adjust as needed)
-      const numPages = Math.min(pdf.numPages, 3);
+      // Fallback to OCR for image-based PDFs
+      const numPages = Math.min(pdf.numPages, 3); // Limit to first 3 pages for performance
       let ocrText = '';
+      
       for (let pageNum = 1; pageNum <= numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const viewport = page.getViewport({ scale: 2.0 });
@@ -316,16 +309,32 @@ export const extractTextFromPDF = async (file: File): Promise<string> => {
         const context = canvas.getContext('2d');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        
         await page.render({ canvasContext: context!, viewport }).promise;
         const imageDataUrl = canvas.toDataURL('image/png');
         ocrText += await extractTextFromImage(imageDataUrl) + '\n';
       }
+      
       return ocrText.trim() || '[PDF OCR feldolgozás sikertelen vagy üres.]';
     }
 
-    return textMatches.join(' ').slice(0, 50000);
+    return textMatches.join(' ').slice(0, 50000); // Limit to 50KB of text
   } catch (error) {
     console.error('PDF text extraction error:', error);
     return `Dokumentum: ${file.name}. Szöveg kivonás sikertelen, de a fájl feltöltve.`;
   }
+};
+
+export const getConfidenceLabel = (confidence: number): string => {
+  if (confidence >= 0.9) return 'Kiváló megbízhatóság';
+  if (confidence >= 0.8) return 'Magas megbízhatóság';
+  if (confidence >= 0.6) return 'Közepes megbízhatóság';
+  if (confidence >= 0.4) return 'Alacsony megbízhatóság';
+  return 'Kevésbé megbízható';
+};
+
+export const getConfidenceColor = (confidence: number): string => {
+  if (confidence >= 0.8) return 'text-green-600';
+  if (confidence >= 0.6) return 'text-yellow-600';
+  return 'text-red-600';
 };

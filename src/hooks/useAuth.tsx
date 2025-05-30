@@ -1,136 +1,128 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
-interface Profile {
+export interface Profile {
   id: string;
-  name: string;
   email: string;
+  name: string;
   role: UserRole;
   avatar_url?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface AuthContextType {
-  user: User | null;
-  profile: Profile | null;
-  session: Session | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, name: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  isLoading: boolean;
+  user: Profile | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Fetch user profile
-          setTimeout(async () => {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (profileData) {
-              setProfile(profileData);
-            }
-          }, 0);
-        } else {
-          setProfile(null);
-        }
-        
-        setIsLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        // Fetch user profile
-        supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single()
-          .then(({ data: profileData }) => {
-            if (profileData) {
-              setProfile(profileData);
-            }
+          .single();
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+
+        if (profile) {
+          setUser({
+            id: profile.id,
+            email: profile.email,
+            name: profile.name,
+            role: profile.role,
+            avatar_url: profile.avatar_url || undefined,
+            created_at: profile.created_at || undefined,
+            updated_at: profile.updated_at || undefined
           });
+        }
+      } else {
+        setUser(null);
       }
-      
-      setIsLoading(false);
+      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      
+
       if (error) throw error;
-      return true;
+
+      if (data.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        if (profile) {
+          setUser({
+            id: profile.id,
+            email: profile.email,
+            name: profile.name,
+            role: profile.role,
+            avatar_url: profile.avatar_url || undefined,
+            created_at: profile.created_at || undefined,
+            updated_at: profile.updated_at || undefined
+          });
+        }
+      }
+
+      navigate('/dashboard');
+      toast.success('Sikeres bejelentkezés');
     } catch (error) {
-      console.error('Login error:', error);
-      return false;
+      console.error('Error signing in:', error);
+      toast.error('Hiba történt a bejelentkezés során');
     }
   };
 
-  const signup = async (email: string, password: string, name: string): Promise<boolean> => {
+  const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: name,
-          },
-        },
-      });
-      
+      const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      return true;
+      setUser(null);
+      navigate('/login');
+      toast.success('Sikeres kijelentkezés');
     } catch (error) {
-      console.error('Signup error:', error);
-      return false;
+      console.error('Error signing out:', error);
+      toast.error('Hiba történt a kijelentkezés során');
     }
-  };
-
-  const logout = async (): Promise<void> => {
-    await supabase.auth.signOut();
   };
 
   return (
     <AuthContext.Provider value={{ 
       user, 
-      profile, 
-      session, 
-      login, 
-      signup, 
-      logout, 
-      isLoading 
+      loading, 
+      signIn, 
+      signOut, 
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,4 +1,3 @@
-
 export const formatTimestamp = (timestamp: string): string => {
   const date = new Date(timestamp);
   const now = new Date();
@@ -60,4 +59,17 @@ export const getSourceDisplayName = (source: string): string => {
     return source.split(' - ')[0] || source;
   }
   return source;
+};
+
+export const getRiskLevelLabel = (level: string): string => {
+  switch (level.toLowerCase()) {
+    case 'high':
+      return 'Magas kockázat';
+    case 'medium':
+      return 'Közepes kockázat';
+    case 'low':
+      return 'Alacsony kockázat';
+    default:
+      return 'Ismeretlen kockázat';
+  }
 };
