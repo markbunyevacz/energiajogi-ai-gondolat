@@ -78,7 +78,10 @@ export function AnalysisRiskCharts({ analyses }: AnalysisRiskChartsProps) {
                 dataKey="value"
               >
                 {riskLevelData.map((entry) => (
-                  <Cell key={`cell-${entry.name}`} fill={entry.color} />
+                  <Cell 
+                    key={`cell-${entry.name}`}
+                    fill={entry.color} 
+                  />
                 ))}
               </Pie>
               <Tooltip />

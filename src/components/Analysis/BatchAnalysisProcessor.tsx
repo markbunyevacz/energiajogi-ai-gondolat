@@ -14,8 +14,10 @@ import {
   Pause,
   Play,
   StopCircle,
-  RefreshCw
 } from 'lucide-react';
+import { ContractAnalysis } from '@/types';
+import { generateMockRisks, generateMockRecommendations } from './utils/mockDataGenerators';
+import { toast } from 'sonner';
 
 interface BatchJob {
   id: string;
@@ -35,6 +37,9 @@ export function BatchAnalysisProcessor() {
   const [jobName, setJobName] = useState('');
   const [priority, setPriority] = useState('medium');
   const [processingMode, setProcessingMode] = useState('parallel');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [results, setResults] = useState<ContractAnalysis[]>([]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files);
@@ -168,6 +173,40 @@ export function BatchAnalysisProcessor() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const handleProcess = async () => {
+    setIsProcessing(true);
+    setProgress(0);
+    setResults([]);
+
+    try {
+      // Simulate batch processing
+      for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setProgress((i + 1) * 20);
+
+        const newAnalysis: ContractAnalysis = {
+          id: Math.random().toString(36).substr(2, 9),
+          contractId: `DEMO-${Date.now()}-${i + 1}`,
+          riskLevel: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high',
+          risks: generateMockRisks(),
+          recommendations: generateMockRecommendations(),
+          summary: 'Az AI elemzés befejeződött. A szerződés részletes áttekintése alapján azonosított kockázatok és javaslatok.',
+          timestamp: new Date().toISOString()
+        };
+
+        setResults(prev => [...prev, newAnalysis]);
+      }
+
+      toast.success('Kötegelt elemzés sikeresen befejeződött');
+    } catch (error) {
+      toast.error('Hiba történt a kötegelt elemzés során', {
+        description: 'Kérjük, próbálja újra később'
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Batch Job Creation */}
@@ -246,14 +285,19 @@ export function BatchAnalysisProcessor() {
             </div>
           </div>
 
-          <Button 
-            onClick={createBatchJob}
-            disabled={!selectedFiles || selectedFiles.length === 0 || !jobName.trim()}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Kötegelt Elemzés Indítása
-          </Button>
+          <div className="flex justify-between items-center">
+            <Button 
+              onClick={handleProcess} 
+              disabled={isProcessing}
+            >
+              {isProcessing ? 'Feldolgozás...' : 'Kötegelt Elemzés Indítása'}
+            </Button>
+            {isProcessing && (
+              <div className="text-sm text-muted-foreground">
+                {progress}% kész
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -318,6 +362,37 @@ export function BatchAnalysisProcessor() {
                       {job.startTime && ` • Futási idő: ${formatDuration(job.startTime)}`}
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {results.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Elemzési Eredmények</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {results.map((result) => (
+                <div 
+                  key={result.id}
+                  className="p-4 rounded-lg border bg-card text-card-foreground"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">Szerződés #{result.contractId}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(result.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-sm">
+                      Kockázati szint: {result.riskLevel}
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm">{result.summary}</p>
                 </div>
               ))}
             </div>

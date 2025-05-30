@@ -3,40 +3,31 @@ import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Clock, AlertTriangle, FileText, Brain, Shield } from 'lucide-react';
 import { ContractAnalysis } from '@/types';
 
-interface AnalysisProcessingStepsProps {
-  analysis: ContractAnalysis;
-}
-
-export function AnalysisProcessingSteps({ analysis }: AnalysisProcessingStepsProps) {
-  // Mock processing steps - in real app this would come from actual processing status
+export function AnalysisProcessingSteps() {
   const steps = [
     {
-      id: 'upload',
-      name: 'Dokumentum Feltöltés',
-      icon: FileText,
-      status: 'completed' as const,
-      duration: '2s'
+      id: '1',
+      name: 'Dokumentum Feldolgozás',
+      status: 'completed',
+      description: 'A szerződés szövegének előfeldolgozása és strukturálása'
     },
     {
-      id: 'processing',
-      name: 'Szöveg Feldolgozás',
-      icon: Brain,
-      status: 'completed' as const,
-      duration: '15s'
+      id: '2',
+      name: 'Kockázatelemzés',
+      status: 'completed',
+      description: 'Jogi és üzleti kockázatok azonosítása'
     },
     {
-      id: 'analysis',
-      name: 'AI Elemzés',
-      icon: Shield,
-      status: 'completed' as const,
-      duration: '45s'
+      id: '3',
+      name: 'Javaslatok Generálása',
+      status: 'completed',
+      description: 'Javítási és optimalizálási javaslatok kidolgozása'
     },
     {
-      id: 'validation',
-      name: 'Validáció',
-      icon: CheckCircle,
-      status: 'completed' as const,
-      duration: '8s'
+      id: '4',
+      name: 'Összegzés',
+      status: 'completed',
+      description: 'Elemzési eredmények összefoglalása'
     }
   ];
 
@@ -107,7 +98,6 @@ export function AnalysisProcessingSteps({ analysis }: AnalysisProcessingStepsPro
                 <span className={`px-1 py-0.5 rounded text-xs ${getStatusColor(step.status)}`}>
                   {getStatusText(step.status)}
                 </span>
-                <span>{step.duration}</span>
               </div>
             </div>
           </div>
