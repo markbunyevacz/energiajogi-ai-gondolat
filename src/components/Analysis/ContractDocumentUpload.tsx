@@ -1,10 +1,14 @@
 import { useState, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Upload, FileText, AlertTriangle } from 'lucide-react';
 import { DocumentUploadZone } from './Upload/DocumentUploadZone';
 import { UploadedFilesList } from './Upload/UploadedFilesList';
 import { UploadedFile } from './Upload/types';
 import { extractTextFromFile } from './Upload/utils';
+import { ErrorDisplay } from '@/components/common/ErrorDisplay';
+import { toast } from 'sonner';
 
 interface ContractDocumentUploadProps {
   onSaveAndAnalyze: (file: File, content: string) => void;
@@ -14,7 +18,6 @@ interface ContractDocumentUploadProps {
 export function ContractDocumentUpload({ onSaveAndAnalyze, isAnalyzing }: ContractDocumentUploadProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
-  const { user } = useAuth();
 
   const processFile = async (file: File) => {
     const fileId = Math.random().toString(36).substr(2, 9);

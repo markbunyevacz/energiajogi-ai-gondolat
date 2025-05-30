@@ -1,6 +1,8 @@
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Shield, FileText, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Badge } from "@/components/ui/badge";
 import type { ContractAnalysis } from '@/types';
 
 interface AnalysisProcessingStepsProps {

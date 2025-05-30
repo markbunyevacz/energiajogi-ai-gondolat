@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -53,11 +52,18 @@ export interface QASession {
 
 export interface ContractAnalysis {
   id: string;
-  contractId: string;
-  riskLevel: 'low' | 'medium' | 'high';
-  risks: Risk[];
-  recommendations: string[];
-  summary: string;
+  title: string;
+  description: string;
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  created_at: string;
+  contractId?: string;
+  riskLevel: 'high' | 'medium' | 'low';
+  summary?: string;
+  risks?: Array<{
+    id: string;
+    description: string;
+    level: 'high' | 'medium' | 'low';
+  }>;
   timestamp: string;
 }
 

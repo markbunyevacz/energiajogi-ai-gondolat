@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { FileText, MessageSquare, Shield, Upload, Search, AlertTriangle, Activity } from 'lucide-react';
 import { UserRole } from '@/types';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { formatTimestamp } from '@/components/QA/utils/qaHelpers';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
@@ -118,7 +118,7 @@ export function RecentActivity({ role }: RecentActivityProps) {
           filter: `user_role=eq.${role}`
         },
         (payload: RealtimePostgresChangesPayload<SupabaseActivity>) => {
-          if (payload.new) {
+          if (payload.new && isSupabaseActivity(payload.new)) {
             const newActivity = formatActivity(payload.new);
             setActivities(prev => [newActivity, ...prev].slice(0, ACTIVITY_LIMIT));
           }
@@ -131,7 +131,7 @@ export function RecentActivity({ role }: RecentActivityProps) {
     };
   }, [role, fetchActivities]);
 
-  const renderActivity = (activity: ActivityItem) => {
+  const renderActivity = useCallback((activity: ActivityItem) => {
     const Icon = getActivityIcon(activity.type);
     
     return (
@@ -175,7 +175,36 @@ export function RecentActivity({ role }: RecentActivityProps) {
         </div>
       </div>
     );
-  };
+  }, []);
+
+  const content = useMemo(() => {
+    if (loading) {
+      return (
+        <div className="text-center py-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-500">Tevékenységek betöltése...</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-4">
+          <p className="text-red-500">{error}</p>
+        </div>
+      );
+    }
+
+    if (activities.length === 0) {
+      return (
+        <div className="text-center py-4">
+          <p className="text-gray-500">Nincsenek tevékenységek</p>
+        </div>
+      );
+    }
+
+    return activities.map(renderActivity);
+  }, [loading, error, activities, renderActivity]);
 
   return (
     <Card className="col-span-1 lg:col-span-2">
@@ -187,25 +216,24 @@ export function RecentActivity({ role }: RecentActivityProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {loading ? (
-            <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-sm text-gray-500">Tevékenységek betöltése...</p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-4">
-              <p className="text-red-500">{error}</p>
-            </div>
-          ) : activities.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-gray-500">Nincsenek tevékenységek</p>
-            </div>
-          ) : (
-            activities.map(renderActivity)
-          )}
+          {content}
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// Type guard for Supabase activity
+function isSupabaseActivity(data: unknown): data is SupabaseActivity {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'id' in data &&
+    'type' in data &&
+    'title' in data &&
+    'description' in data &&
+    'created_at' in data &&
+    'user_role' in data
   );
 }
 

@@ -1,5 +1,3 @@
-
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +6,7 @@ import { useUserBehaviorTracking } from '@/hooks/useUserBehaviorTracking';
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { TrendingUp, Users, Target, Activity, Play, Pause, RotateCcw } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface ABTest {
   id: string;

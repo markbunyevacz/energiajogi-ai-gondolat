@@ -13,9 +13,9 @@ export interface Database {
           title: string;
           description: string;
           created_at: string;
+          user_role: string;
           user_name?: string;
           status?: ActivityStatus;
-          user_role: UserRole;
         };
         Insert: {
           id?: string;
@@ -23,9 +23,9 @@ export interface Database {
           title: string;
           description: string;
           created_at?: string;
+          user_role: string;
           user_name?: string;
           status?: ActivityStatus;
-          user_role: UserRole;
         };
         Update: {
           id?: string;
@@ -33,9 +33,9 @@ export interface Database {
           title?: string;
           description?: string;
           created_at?: string;
+          user_role?: string;
           user_name?: string;
           status?: ActivityStatus;
-          user_role?: UserRole;
         };
       };
     };
