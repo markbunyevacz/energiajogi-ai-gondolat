@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   BarChart, 
@@ -20,6 +19,11 @@ import { TrendingUp, PieChart as PieChartIcon, BarChart as BarChartIcon } from '
 
 interface AnalysisRiskChartsProps {
   analyses: ContractAnalysis[];
+}
+
+interface ChartData {
+  name: string;
+  value: number;
 }
 
 export function AnalysisRiskCharts({ analyses }: AnalysisRiskChartsProps) {
