@@ -94,27 +94,24 @@ export function AnalysisProcessingSteps({ analysis }: AnalysisProcessingStepsPro
       <Progress value={progressPercentage} className="h-2" />
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        {steps.map((step) => {
-          const IconComponent = step.icon;
-          return (
-            <div key={step.id} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
-              <div className="flex-shrink-0">
-                {getStatusIcon(step.status)}
+        {steps.map((step) => (
+          <div key={step.id} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
+            <div className="flex-shrink-0">
+              {getStatusIcon(step.status)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-medium text-gray-900 truncate">
+                {step.name}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium text-gray-900 truncate">
-                  {step.name}
-                </div>
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span className={`px-1 py-0.5 rounded text-xs ${getStatusColor(step.status)}`}>
-                    {getStatusText(step.status)}
-                  </span>
-                  <span>{step.duration}</span>
-                </div>
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span className={`px-1 py-0.5 rounded text-xs ${getStatusColor(step.status)}`}>
+                  {getStatusText(step.status)}
+                </span>
+                <span>{step.duration}</span>
               </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );

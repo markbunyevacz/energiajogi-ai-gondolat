@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { ContractAnalysis } from '@/types';
 import { ContractInput } from './ContractInput';

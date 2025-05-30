@@ -21,11 +21,6 @@ interface AnalysisRiskChartsProps {
   analyses: ContractAnalysis[];
 }
 
-interface ChartData {
-  name: string;
-  value: number;
-}
-
 export function AnalysisRiskCharts({ analyses }: AnalysisRiskChartsProps) {
   // Prepare data for risk level distribution
   const riskLevelData = [
@@ -82,8 +77,8 @@ export function AnalysisRiskCharts({ analyses }: AnalysisRiskChartsProps) {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {riskLevelData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                {riskLevelData.map((entry) => (
+                  <Cell key={`cell-${entry.name}`} fill={entry.color} />
                 ))}
               </Pie>
               <Tooltip />

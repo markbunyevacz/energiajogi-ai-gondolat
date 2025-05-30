@@ -1,4 +1,4 @@
-import { Badge, BadgeProps } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Brain, FileText, Search, Shield } from 'lucide-react';
 import { AgentType } from '@/services/aiAgentRouter';
 
