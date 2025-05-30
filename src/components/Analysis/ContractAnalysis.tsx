@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ContractAnalysis } from '@/types';
+import type { ContractAnalysis } from '@/types';
 import { ContractInput } from './ContractInput';
 import { ContractAnalysisResults } from './ContractAnalysisResults';
 import { generateMockRisks, generateMockRecommendations } from './utils/mockDataGenerators';
@@ -9,7 +9,7 @@ export function ContractAnalysis() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<ContractAnalysis[]>([]);
 
-  const handleAnalyze = async (text: string) => {
+  const handleAnalyze = async () => {
     setIsAnalyzing(true);
     
     try {

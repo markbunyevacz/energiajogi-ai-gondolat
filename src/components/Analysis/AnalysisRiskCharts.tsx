@@ -48,7 +48,7 @@ export function AnalysisRiskCharts({ analyses }: AnalysisRiskChartsProps) {
   // Prepare timeline data
   const timelineData = analyses
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map((analysis, index) => ({
+    .map(analysis => ({
       date: new Date(analysis.timestamp).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' }),
       risks: analysis.risks.length,
       riskLevel: analysis.riskLevel === 'high' ? 3 : analysis.riskLevel === 'medium' ? 2 : 1

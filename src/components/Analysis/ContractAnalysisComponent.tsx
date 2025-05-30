@@ -9,7 +9,7 @@ export function ContractAnalysisComponent() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<ContractAnalysis[]>([]);
 
-  const handleAnalyze = async (contractText: string) => {
+  const handleAnalyze = async () => {
     setIsAnalyzing(true);
     
     try {

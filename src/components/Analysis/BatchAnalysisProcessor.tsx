@@ -45,27 +45,6 @@ export function BatchAnalysisProcessor() {
     setSelectedFiles(event.target.files);
   };
 
-  const createBatchJob = () => {
-    if (!selectedFiles || selectedFiles.length === 0 || !jobName.trim()) return;
-
-    const newJob: BatchJob = {
-      id: `batch_${Date.now()}`,
-      name: jobName,
-      files: Array.from(selectedFiles),
-      status: 'pending',
-      progress: 0,
-      processedFiles: 0,
-      totalFiles: selectedFiles.length,
-    };
-
-    setBatchJobs(prev => [...prev, newJob]);
-    setSelectedFiles(null);
-    setJobName('');
-    
-    // Start processing automatically
-    startBatchJob(newJob.id);
-  };
-
   const startBatchJob = (jobId: string) => {
     setBatchJobs(prev => prev.map(job => 
       job.id === jobId 
@@ -209,7 +188,6 @@ export function BatchAnalysisProcessor() {
 
   return (
     <div className="space-y-6">
-      {/* Batch Job Creation */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -301,7 +279,6 @@ export function BatchAnalysisProcessor() {
         </CardContent>
       </Card>
 
-      {/* Active Batch Jobs */}
       {batchJobs.length > 0 && (
         <Card>
           <CardHeader>
