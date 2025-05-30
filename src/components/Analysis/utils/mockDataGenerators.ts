@@ -1,28 +1,21 @@
-
 import { Risk } from '@/types';
 
-export const generateMockRisks = (): Risk[] => {
+export const generateMockRisks = () => {
   const allRisks = [
     {
-      type: 'legal' as const,
-      severity: 'high' as const,
+      id: 'risk-1',
       description: 'Felmondási feltételek egyoldalúan a szolgáltató javára szólnak',
-      recommendation: 'Kölcsönös felmondási jogok biztosítása megfelelő határidőkkel',
-      section: '8. szakasz'
+      level: 'high' as const
     },
     {
-      type: 'financial' as const,
-      severity: 'medium' as const,
+      id: 'risk-2',
       description: 'Késedelmi kamat mértéke magasabb a jogszabályi maximumnál',
-      recommendation: 'Késedelmi kamat csökkentése a Ptk. szerinti mértékre',
-      section: '11.3 pont'
+      level: 'medium' as const
     },
     {
-      type: 'operational' as const,
-      severity: 'low' as const,
+      id: 'risk-3',
       description: 'Értesítési kötelezettségek nem szimmetrikusak',
-      recommendation: 'Kölcsönös értesítési kötelezettségek meghatározása',
-      section: '14. szakasz'
+      level: 'low' as const
     }
   ];
   
