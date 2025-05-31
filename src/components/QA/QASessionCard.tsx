@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { QuestionSection } from './sections/QuestionSection';

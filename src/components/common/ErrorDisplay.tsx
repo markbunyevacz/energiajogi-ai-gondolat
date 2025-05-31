@@ -1,3 +1,4 @@
+import React from 'react';
 import { AlertCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 

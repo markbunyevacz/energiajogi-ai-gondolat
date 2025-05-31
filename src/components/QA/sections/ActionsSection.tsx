@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, Copy } from 'lucide-react';
 import { toast } from 'sonner';
