@@ -62,7 +62,6 @@ export function RegressionTester({ onTestResult }: RegressionTesterProps) {
 
         // Simulate running individual tests in the suite
         for (let j = 0; j < suite.tests.length; j++) {
-          const testName = suite.tests[j];
           totalTests++;
           
           // Simulate test execution time

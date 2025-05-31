@@ -93,7 +93,7 @@ export const uploadToSupabase = async (
     updateProgress(file.id, 90, 'ai-processing');
 
     // Save to database with better error handling
-    const { data: documentData, error: dbError } = await supabase
+    const { error: dbError } = await supabase
       .from('documents')
       .insert({
         title: file.name,

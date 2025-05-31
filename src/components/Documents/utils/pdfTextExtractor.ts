@@ -1,5 +1,3 @@
-import { extractTextFromImage } from '../../../services/aiAgentRouter';
-
 // Simple PDF text extraction utility
 export const extractTextFromPDF = async (file: File): Promise<string> => {
   try {

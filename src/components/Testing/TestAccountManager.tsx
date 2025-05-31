@@ -3,23 +3,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Mail, Key, Trash2, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+
+type TestRole = 'jogász' | 'it_vezető' | 'tulajdonos';
 
 interface TestAccount {
   id: string;
   email: string;
-  role: string;
+  role: TestRole;
 }
 
 interface TestAccountManagerProps {
   onAccountCreate: (account: Omit<TestAccount, 'id'>) => void;
-  onAccountDelete: (id: string) => void;
 }
 
-export function TestAccountManager({ onAccountCreate, onAccountDelete }: TestAccountManagerProps) {
+export function TestAccountManager({ onAccountCreate }: TestAccountManagerProps) {
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('jogász');
+  const [role] = useState<TestRole>('jogász');
 
   const handleCreateAccount = () => {
     if (!email.trim()) {
