@@ -54,11 +54,13 @@ export function ContractDocumentUpload({ onSaveAndAnalyze, isAnalyzing }: Contra
       ));
 
       toast.success(`${file.name} sikeresen feldolgozva`);
-    } catch (error) {
+    } catch {
       setFiles(prev => prev.map(f => 
         f.id === fileId ? { ...f, status: 'error', progress: 0 } : f
       ));
-      toast.error(`Hiba ${file.name} feldolgozásakor`);
+      toast.error('Hiba történt a feltöltés során', {
+        description: 'Kérjük, próbálja újra később'
+      });
     }
   };
 

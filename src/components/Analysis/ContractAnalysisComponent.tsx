@@ -34,7 +34,7 @@ export function ContractAnalysisComponent() {
         setIsAnalyzing(false);
         toast.success('Elemzés sikeresen befejeződött');
       }, 3000);
-    } catch (error) {
+    } catch {
       setIsAnalyzing(false);
       toast.error('Hiba történt az elemzés során', {
         description: 'Kérjük, próbálja újra később'

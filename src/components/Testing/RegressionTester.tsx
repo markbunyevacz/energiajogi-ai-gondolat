@@ -102,7 +102,7 @@ export function RegressionTester({ onTestResult }: RegressionTesterProps) {
         }
       });
 
-    } catch (error) {
+    } catch {
       onTestResult({
         testName: 'Regressziós teszt hiba',
         category: 'performance',
