@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking';
 import { DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Lightbulb } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 
@@ -30,7 +29,6 @@ interface OptimizationRecommendation {
 export function CostOptimizationDashboard() {
   const [selectedTimeRange, setSelectedTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [budgetAlert, setBudgetAlert] = useState<boolean>(false);
-  const { trackCost } = useAnalyticsTracking();
 
   // Fetch cost data
   const { data: costData, isLoading } = useQuery({
