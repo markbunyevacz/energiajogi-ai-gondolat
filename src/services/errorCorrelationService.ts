@@ -161,7 +161,7 @@ export class ErrorCorrelationService {
     const recentLogs = this.logger.getRecentLogs('error', 100);
     
     // Find potential error clusters
-    const cluster = this.findOrCreateCluster(error, recentLogs, context);
+    const cluster = this.findOrCreateCluster(error, context);
     
     // Analyze correlations
     const correlations = this.findCorrelations(error, recentLogs);
@@ -175,7 +175,6 @@ export class ErrorCorrelationService {
 
   private findOrCreateCluster(
     error: ContractAnalysisError,
-    recentLogs: LogEntry[],
     context?: any
   ): ErrorCluster {
     const now = Date.now();

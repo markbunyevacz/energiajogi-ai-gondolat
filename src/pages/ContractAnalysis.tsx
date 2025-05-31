@@ -7,7 +7,6 @@ import { ContractAnalysisHeader } from "@/components/Analysis/ContractAnalysisHe
 import { ContractsList } from "@/components/Analysis/ContractsList";
 import { ContractsEmptyState } from "@/components/Analysis/ContractsEmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ContractAnalysis } from '@/types';
 import { useAnalyticsTracking } from "@/hooks/useAnalyticsTracking";
 import { useContractAnalysis } from "@/hooks/useContractAnalysis";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
