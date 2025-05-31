@@ -108,7 +108,7 @@ class AIAgentRouter {
    * @param contractText The full text of the contract.
    * @returns A summary of key clauses.
    */
-  public async extractAndSummarizeClauses(contractText: string): Promise<string> {
+  public async extractAndSummarizeClauses(): Promise<string> {
     return 'Hiba történt a szerződés elemzése során.';
   }
 
@@ -248,7 +248,7 @@ class AIAgentRouter {
       contract: () => {
         let prompt = `Szerződéses szakértőként elemezze a következő kérdést, különös figyelmet fordítva a jogi kötelezettségekre és kockázatokra: ${question}`;
         if (options?.extractClauses && options.contractText) {
-          prompt += '\n' + this.extractAndSummarizeClauses(options.contractText);
+          prompt += '\n' + this.extractAndSummarizeClauses();
         }
         if (options?.highlightRisks && options.contractText) {
           prompt += '\n' + this.highlightRisksOrMissingElements(options.contractText);

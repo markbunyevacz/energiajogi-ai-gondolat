@@ -1,5 +1,3 @@
-import { UserRole } from './index';
-
 export type ActivityType = 'document' | 'question' | 'analysis' | 'upload' | 'search' | 'alert';
 export type ActivityStatus = 'success' | 'warning' | 'error';
 

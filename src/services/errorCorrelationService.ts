@@ -209,7 +209,7 @@ export class ErrorCorrelationService {
     const correlations: ErrorCorrelation[] = [];
 
     // Check for known correlation patterns
-    for (const [pattern, correlation] of this.correlations) {
+    for (const [, correlation] of this.correlations) {
       if (correlation.primaryError === error.code || 
           correlation.relatedErrors.includes(error.code)) {
         correlations.push(correlation);
@@ -697,7 +697,7 @@ export class ErrorCorrelationService {
       };
 
       // Send to monitoring service
-      await this.sendToMonitoringService(monitoringData);
+      await this.sendToMonitoringService();
 
       // Log monitoring report
       this.logger.log(
@@ -766,7 +766,7 @@ export class ErrorCorrelationService {
     return totalConfidence / correlations.length;
   }
 
-  private async sendToMonitoringService(data: Record<string, unknown>): Promise<void> {
+  private async sendToMonitoringService(): Promise<void> {
     // Implement integration with monitoring service (e.g., Datadog, New Relic, etc.)
     // Example:
     // await MonitoringService.sendMetrics({

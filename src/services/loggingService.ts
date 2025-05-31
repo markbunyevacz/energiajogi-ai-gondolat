@@ -79,7 +79,7 @@ export class LoggingService {
     this.trimLogs();
 
     if (error) {
-      this.trackError(error, context);
+      this.trackError(error);
       this.detectErrorPattern(error, context);
     }
 
@@ -102,22 +102,22 @@ export class LoggingService {
     try {
       // Example: Report to error tracking service
       if (entry.error) {
-        await this.reportToErrorTracking(entry);
+        await this.reportToErrorTracking();
       }
 
       // Example: Report to monitoring service
       if (entry.level === 'error' || entry.level === 'warn') {
-        await this.reportToMonitoring(entry);
+        await this.reportToMonitoring();
       }
 
       // Example: Report to analytics service
-      await this.reportToAnalytics(entry);
+      await this.reportToAnalytics();
     } catch (error) {
       console.error('Failed to report to external services:', error);
     }
   }
 
-  private async reportToErrorTracking(entry: LogEntry) {
+  private async reportToErrorTracking() {
     // Implement integration with error tracking service (e.g., Sentry)
     // Example:
     // await Sentry.captureException(entry.error, {
@@ -128,7 +128,7 @@ export class LoggingService {
     // });
   }
 
-  private async reportToMonitoring(entry: LogEntry) {
+  private async reportToMonitoring() {
     // Implement integration with monitoring service (e.g., Datadog)
     // Example:
     // await Datadog.increment('error.count', {
@@ -137,7 +137,7 @@ export class LoggingService {
     // });
   }
 
-  private async reportToAnalytics(entry: LogEntry) {
+  private async reportToAnalytics() {
     // Implement integration with analytics service
     // Example:
     // await Analytics.track('error_occurred', {
@@ -152,7 +152,7 @@ export class LoggingService {
     }
   }
 
-  private trackError(error: ContractAnalysisError, context?: any) {
+  private trackError(error: ContractAnalysisError) {
     const errorCode = error.code as ErrorCode;
     const count = (this.errorCount.get(errorCode) || 0) + 1;
     this.errorCount.set(errorCode, count);

@@ -15,6 +15,7 @@ export const fetchContractAnalyses = async (userId: string) => {
       recommendations,
       created_at,
       risks (
+        id,
         type,
         severity,
         description,
@@ -39,9 +40,17 @@ export const fetchContractAnalyses = async (userId: string) => {
     summary: item.summary || '',
     recommendations: item.recommendations || [],
     timestamp: item.created_at,
-    risks: item.risks || [],
-    title: item.title || 'Contract Analysis',
-    description: item.summary,
+    risks: (item.risks || []).map(risk => ({
+      id: risk.id,
+      description: risk.description,
+      level: risk.severity,
+      type: risk.type,
+      severity: risk.severity,
+      recommendation: risk.recommendation,
+      section: risk.section
+    })),
+    title: 'Contract Analysis',
+    description: item.summary || '',
     status: 'completed',
     created_at: item.created_at || new Date().toISOString()
   }));
