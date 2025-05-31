@@ -14,12 +14,6 @@ interface AnalyticsEvent {
   created_at?: string;
 }
 
-interface TrackEventOptions {
-  event_type: string;
-  event_data?: JsonValue;
-  session_id?: string;
-}
-
 export function useAnalyticsTracking() {
   const { user } = useAuth();
 

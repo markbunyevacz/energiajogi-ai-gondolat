@@ -1,3 +1,4 @@
+import React from 'react';
 import { useAuth } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/Layout/ProtectedRoute";
 import { Header } from "@/components/Layout/Header";
