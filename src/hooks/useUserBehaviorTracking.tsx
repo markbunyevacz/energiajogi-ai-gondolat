@@ -144,9 +144,9 @@ export function useUserBehaviorTracking() {
     trackEvent({
       event_type: 'conversion',
       event_data: {
-        sessionId: sessionRef.current?.sessionId,
+        sessionId: sessionRef.current?.sessionId || null,
         event: eventName,
-        value,
+        value: value || null,
         timestamp: Date.now()
       }
     });

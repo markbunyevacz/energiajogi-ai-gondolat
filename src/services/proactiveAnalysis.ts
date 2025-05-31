@@ -10,20 +10,6 @@ export interface ProactiveRecommendation {
   estimatedImpact?: string;
 }
 
-interface AnalysisResult {
-  type: string;
-  confidence: number;
-  data: Record<string, unknown>;
-  timestamp: string;
-}
-
-interface AnalysisContext {
-  documentId: string;
-  userId: string;
-  sessionId: string;
-  metadata: Record<string, unknown>;
-}
-
 class ProactiveAnalysisService {
   async generateRecommendations(userId: string): Promise<ProactiveRecommendation[]> {
     try {

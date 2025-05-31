@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, AlertCircle } from 'lucide-react';
+import { Brain } from 'lucide-react';
 import { useAgentStatus } from '@/hooks/useAgentStatus';
 
 interface AgentStatusProps {

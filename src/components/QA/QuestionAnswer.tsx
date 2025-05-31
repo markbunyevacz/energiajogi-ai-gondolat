@@ -21,17 +21,6 @@ interface QASession {
   conversation_context?: any;
 }
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface QuestionAnswerProps {
-  messages: Message[];
-  isLoading: boolean;
-  onSendMessage: (message: string) => void;
-}
-
 export function QuestionAnswer() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessions, setSessions] = useState<QASession[]>([]);

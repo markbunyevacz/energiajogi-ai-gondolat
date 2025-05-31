@@ -26,13 +26,6 @@ interface ErrorPattern {
   }[];
 }
 
-interface LogOptions {
-  level: LogLevel;
-  message: string;
-  data?: Record<string, unknown>;
-  context?: Record<string, unknown>;
-}
-
 export class LoggingService {
   private static instance: LoggingService;
   private logs: LogEntry[] = [];

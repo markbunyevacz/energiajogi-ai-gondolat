@@ -1,4 +1,4 @@
-import { ContractAnalysisError, ErrorCodes, ErrorResponse as ApiErrorResponse, ErrorCode } from '@/types/errors';
+import { ContractAnalysisError, ErrorCodes, ErrorCode } from '@/types/errors';
 import { LoggingService } from './loggingService';
 
 interface RetryConfig {
@@ -203,15 +203,16 @@ export class ErrorHandlingService {
       details: {
         message: errorMessage,
         code: errorCode,
-        stack: errorStack,
-        context
+        stack: errorStack
       }
     };
 
     // Add context-specific error handling
     if (context) {
       baseResponse.details = {
-        ...baseResponse.details,
+        message: errorMessage,
+        code: errorCode,
+        stack: errorStack,
         context
       };
     }
