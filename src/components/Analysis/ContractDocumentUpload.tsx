@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useCallback } from 'react';
 import { DocumentUploadZone } from './Upload/DocumentUploadZone';
 import { UploadedFilesList } from './Upload/UploadedFilesList';
