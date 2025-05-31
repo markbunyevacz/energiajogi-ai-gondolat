@@ -1,13 +1,8 @@
 import { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, AlertTriangle } from 'lucide-react';
 import { DocumentUploadZone } from './Upload/DocumentUploadZone';
 import { UploadedFilesList } from './Upload/UploadedFilesList';
 import { UploadedFile } from './Upload/types';
 import { extractTextFromFile } from './Upload/utils';
-import { ErrorDisplay } from '@/components/common/ErrorDisplay';
 import { toast } from 'sonner';
 
 interface ContractDocumentUploadProps {

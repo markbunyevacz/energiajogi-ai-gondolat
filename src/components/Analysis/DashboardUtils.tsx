@@ -1,11 +1,12 @@
-
 import { ContractAnalysis } from '@/types';
 
 export const sortAnalyses = (analyses: ContractAnalysis[], sortBy: string): ContractAnalysis[] => {
   return [...analyses].sort((a, b) => {
     switch (sortBy) {
       case 'date':
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return bTime - aTime;
       case 'risk':
         const riskOrder = { high: 3, medium: 2, low: 1 };
         return riskOrder[b.riskLevel] - riskOrder[a.riskLevel];

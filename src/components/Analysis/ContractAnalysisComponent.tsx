@@ -22,7 +22,11 @@ export function ContractAnalysisComponent() {
           risks: generateMockRisks(),
           recommendations: generateMockRecommendations(),
           summary: 'Az AI elemzés befejeződött. A szerződés részletes áttekintése alapján azonosított kockázatok és javaslatok.',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          title: `Szerződés elemzés ${new Date().toLocaleDateString()}`,
+          description: 'Automatikus szerződés elemzés',
+          status: 'completed',
+          created_at: new Date().toISOString()
         };
         
         setAnalysisResults(prev => [newAnalysis, ...prev]);

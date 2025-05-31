@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContractAnalysis } from '@/types';
@@ -48,11 +47,6 @@ export function ContractAnalysisDashboard({ analyses, onAnalysisSelect }: Contra
     }
   };
 
-  const handleExportAnalysis = (analysis: ContractAnalysis) => {
-    console.log('Exporting analysis:', analysis.id);
-    exportAnalysis(analysis);
-  };
-
   if (selectedAnalysis) {
     return (
       <div className="space-y-6">
@@ -100,8 +94,7 @@ export function ContractAnalysisDashboard({ analyses, onAnalysisSelect }: Contra
                 <AnalysisListItem
                   key={analysis.id}
                   analysis={analysis}
-                  onSelect={handleAnalysisSelect}
-                  onExport={handleExportAnalysis}
+                  onClick={() => handleAnalysisSelect(analysis)}
                 />
               ))
             )}
@@ -109,11 +102,11 @@ export function ContractAnalysisDashboard({ analyses, onAnalysisSelect }: Contra
         </TabsContent>
 
         <TabsContent value="charts">
-          <AnalysisRiskCharts analyses={analyses} />
+          <AnalysisRiskCharts analyses={analyses} analysis={analyses[0]} />
         </TabsContent>
 
         <TabsContent value="timeline">
-          <AnalysisTimeline analyses={analyses} />
+          <AnalysisTimeline analyses={analyses} analysis={analyses[0]} />
         </TabsContent>
 
         <TabsContent value="batch">

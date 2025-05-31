@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Shield, AlertTriangle, TrendingUp, Calendar } from 'lucide-react';
 import { ContractAnalysis } from '@/types';
@@ -18,9 +17,9 @@ export function DashboardOverview({ analyses, completionRate }: DashboardOvervie
   };
 
   const riskStats = getRiskStats();
-  const todayAnalyses = analyses.filter(a => 
-    new Date(a.timestamp) > new Date(Date.now() - 24*60*60*1000)
-  ).length;
+  const recentAnalyses = analyses.filter(a => 
+    a.timestamp ? new Date(a.timestamp) > new Date(Date.now() - 24*60*60*1000) : false
+  );
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -65,7 +64,7 @@ export function DashboardOverview({ analyses, completionRate }: DashboardOvervie
           <div className="flex items-center space-x-2">
             <Calendar className="w-8 h-8 text-purple-600" />
             <div>
-              <div className="text-2xl font-bold">{todayAnalyses}</div>
+              <div className="text-2xl font-bold">{recentAnalyses.length}</div>
               <div className="text-sm text-gray-600">Ma Elemezve</div>
             </div>
           </div>

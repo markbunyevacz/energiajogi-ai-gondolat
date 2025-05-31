@@ -146,22 +146,40 @@ export function BatchAnalysisProcessor() {
 
   const formatDuration = (date: Date) => {
     const now = new Date();
-    const diff = Math.abs(now.getTime() - date.getTime());
+    const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes} perc`;
   };
 
   const handleProcess = async () => {
+    if (!selectedFiles || selectedFiles.length === 0) {
+      toast.error('Kérjük, válasszon ki legalább egy fájlt');
+      return;
+    }
+
     setIsProcessing(true);
     setProgress(0);
     setResults([]);
 
+    const newJob: BatchJob = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: jobName || `Kötegelt elemzés ${new Date().toLocaleString()}`,
+      files: Array.from(selectedFiles),
+      status: 'running',
+      progress: 0,
+      processedFiles: 0,
+      totalFiles: selectedFiles.length,
+      startTime: new Date(),
+      estimatedCompletion: new Date(Date.now() + selectedFiles.length * 5000) // 5 seconds per file
+    };
+
+    setBatchJobs(prev => [...prev, newJob]);
+
     try {
       // Simulate batch processing
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < selectedFiles.length; i++) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        setProgress((i + 1) * 20);
+        setProgress(((i + 1) / selectedFiles.length) * 100);
 
         const newAnalysis: ContractAnalysis = {
           id: Math.random().toString(36).substr(2, 9),
@@ -170,14 +188,34 @@ export function BatchAnalysisProcessor() {
           risks: generateMockRisks(),
           recommendations: generateMockRecommendations(),
           summary: 'Az AI elemzés befejeződött. A szerződés részletes áttekintése alapján azonosított kockázatok és javaslatok.',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          title: `Kötegelt elemzés - ${jobName || 'Névtelen'} - ${i + 1}`,
+          description: 'Kötegelt szerződés elemzés',
+          status: 'completed',
+          created_at: new Date().toISOString()
         };
 
         setResults(prev => [...prev, newAnalysis]);
+        setBatchJobs(prev => prev.map(job => 
+          job.id === newJob.id 
+            ? { ...job, processedFiles: i + 1, progress: ((i + 1) / selectedFiles.length) * 100 }
+            : job
+        ));
       }
+
+      setBatchJobs(prev => prev.map(job => 
+        job.id === newJob.id 
+          ? { ...job, status: 'completed', progress: 100 }
+          : job
+      ));
 
       toast.success('Kötegelt elemzés sikeresen befejeződött');
     } catch (error) {
+      setBatchJobs(prev => prev.map(job => 
+        job.id === newJob.id 
+          ? { ...job, status: 'error' }
+          : job
+      ));
       toast.error('Hiba történt a kötegelt elemzés során', {
         description: 'Kérjük, próbálja újra később'
       });
@@ -362,7 +400,7 @@ export function BatchAnalysisProcessor() {
                     <div>
                       <h4 className="font-medium">Szerződés #{result.contractId}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(result.timestamp).toLocaleString()}
+                        {result.timestamp ? new Date(result.timestamp).toLocaleString() : 'Nincs időbélyeg'}
                       </p>
                     </div>
                     <div className="text-sm">
