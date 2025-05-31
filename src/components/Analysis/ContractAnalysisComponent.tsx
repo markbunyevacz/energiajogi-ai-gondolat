@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 import type { ContractAnalysis } from '@/types';
 import { ContractInput } from './ContractInput';

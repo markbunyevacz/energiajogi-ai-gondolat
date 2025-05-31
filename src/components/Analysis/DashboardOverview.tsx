@@ -1,3 +1,4 @@
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Shield, AlertTriangle, TrendingUp, Calendar } from 'lucide-react';
 import { ContractAnalysis } from '@/types';
