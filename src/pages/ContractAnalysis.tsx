@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { ProtectedRoute } from "@/components/Layout/ProtectedRoute";
 import { Header } from "@/components/Layout/Header";
@@ -18,7 +17,6 @@ const ContractAnalysisPage = () => {
   console.log('ContractAnalysisPage: Component rendering started');
   
   const { trackPageView } = useAnalyticsTracking();
-  const [selectedAnalysis, setSelectedAnalysis] = useState<ContractAnalysis | null>(null);
   const [activeTab, setActiveTab] = useState("contracts");
   
   console.log('ContractAnalysisPage: Calling useContractAnalysis hook');
@@ -71,7 +69,6 @@ const ContractAnalysisPage = () => {
                 <TabsContent value="dashboard" className="space-y-6">
                   <ContractAnalysisDashboard 
                     analyses={analyses}
-                    onAnalysisSelect={setSelectedAnalysis}
                   />
                 </TabsContent>
 

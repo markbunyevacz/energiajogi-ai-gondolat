@@ -1,7 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { embeddingService } from './embeddingService';
-import type { SearchRequest, SearchResult, DocumentChunk } from './types';
+import type { SearchRequest, SearchResult } from './types';
 
 export class VectorSearchService {
   async performVectorSearch(request: SearchRequest): Promise<Omit<SearchResult, 'processingTime'>> {
