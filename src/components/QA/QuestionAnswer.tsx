@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +19,17 @@ interface QASession {
   created_at: string;
   agent_type?: string;
   conversation_context?: any;
+}
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+interface QuestionAnswerProps {
+  messages: Message[];
+  isLoading: boolean;
+  onSendMessage: (message: string) => void;
 }
 
 export function QuestionAnswer() {

@@ -1,4 +1,4 @@
-import { ContractAnalysisError, ErrorCodes, ErrorResponse, ErrorCode } from '@/types/errors';
+import { ContractAnalysisError, ErrorCodes, ErrorResponse as ApiErrorResponse, ErrorCode } from '@/types/errors';
 import { LoggingService } from './loggingService';
 
 interface RetryConfig {
@@ -16,6 +16,23 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   backoffFactor: 2,
   jitter: true
 };
+
+interface ErrorDetails {
+  message: string;
+  code?: string;
+  stack?: string;
+  context?: Record<string, unknown>;
+}
+
+interface ErrorResponse {
+  status: number;
+  message: string;
+  details?: ErrorDetails;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+}
 
 export class ErrorHandlingService {
   private static instance: ErrorHandlingService;
@@ -175,13 +192,20 @@ export class ErrorHandlingService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  public createErrorResponse(error: ContractAnalysisError, context?: any): ErrorResponse {
+  public createErrorResponse(error: ContractAnalysisError, context?: Record<string, unknown>): ErrorResponse {
+    const errorMessage = error.message || 'Unknown error occurred';
+    const errorCode = error.code || 'UNKNOWN_ERROR';
+    const errorStack = error.stack || '';
+    
     const baseResponse: ErrorResponse = {
-      code: error.code as ErrorCode,
-      message: error.message,
-      severity: error.severity,
-      timestamp: new Date().toISOString(),
-      retryable: this.isRetryableError(error)
+      status: 500,
+      message: errorMessage,
+      details: {
+        message: errorMessage,
+        code: errorCode,
+        stack: errorStack,
+        context
+      }
     };
 
     // Add context-specific error handling
@@ -196,7 +220,7 @@ export class ErrorHandlingService {
     baseResponse.action = this.getErrorAction(error);
 
     // Log the error
-    this.logger.log('error', error.message, error, context);
+    this.logger.log('error', errorMessage, error, context);
 
     return baseResponse;
   }

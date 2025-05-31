@@ -1,13 +1,13 @@
 import { ContractAnalysisError, ErrorCode, ErrorCodes } from '@/types/errors';
-
-export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+import { LogLevel } from '@/types/logging';
 
 export interface LogEntry {
-  timestamp: string;
   level: LogLevel;
   message: string;
+  data?: Record<string, unknown>;
+  timestamp: string;
+  context?: Record<string, unknown>;
   error?: ContractAnalysisError;
-  context?: any;
   metadata?: {
     component?: string;
     action?: string;
@@ -22,8 +22,15 @@ interface ErrorPattern {
   timeWindow: number; // in milliseconds
   occurrences: {
     timestamp: string;
-    context?: any;
+    context?: Record<string, unknown>;
   }[];
+}
+
+interface LogOptions {
+  level: LogLevel;
+  message: string;
+  data?: Record<string, unknown>;
+  context?: Record<string, unknown>;
 }
 
 export class LoggingService {
@@ -63,7 +70,7 @@ export class LoggingService {
     level: LogLevel,
     message: string,
     error?: ContractAnalysisError,
-    context?: any,
+    context?: Record<string, unknown>,
     metadata?: LogEntry['metadata']
   ) {
     const entry: LogEntry = {
@@ -162,7 +169,7 @@ export class LoggingService {
     }
   }
 
-  private detectErrorPattern(error: ContractAnalysisError, context?: any) {
+  private detectErrorPattern(error: ContractAnalysisError, context?: Record<string, unknown>) {
     const errorCode = error.code as ErrorCode;
     const pattern = this.errorPatterns.get(errorCode);
     if (!pattern) return;
