@@ -2,9 +2,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { DocumentUploadForm } from './DocumentUploadForm';
-import { FileUploadProgress } from './FileUploadProgress';
-import { StoredDocumentsList } from './StoredDocumentsList';
 import { ContractAnalysisPrompt } from './ContractAnalysisPrompt';
 import { uploadToSupabase, analyzeContract } from './utils/documentUploadUtils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileText, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export type DocumentType = 'szerződés' | 'rendelet' | 'szabályzat' | 'törvény' | 'határozat' | 'egyéb';
 export type AnalysisStatus = 'not_analyzed' | 'analyzing' | 'completed' | 'failed';
@@ -71,31 +69,18 @@ export function DocumentUpload() {
     } else {
       // Type cast the analysis_status to ensure it matches our union type
       const typedDocuments = (data || []).map(doc => ({
-        ...doc,
-        analysis_status: (doc.analysis_status || 'not_analyzed') as AnalysisStatus
-      }));
+        id: doc.id,
+        title: doc.title,
+        type: doc.type as DocumentType,
+        file_size: doc.file_size || 0,
+        upload_date: doc.upload_date || new Date().toISOString(),
+        file_path: doc.file_path || '',
+        content: doc.content || null,
+        analysis_status: (doc.analysis_status || 'not_analyzed') as AnalysisStatus,
+        analysis_error: doc.analysis_error || null
+      })) as StoredDocument[];
       setStoredDocuments(typedDocuments);
     }
-  };
-
-  const handleFilesSelected = (fileList: File[]) => {
-    const newFiles: UploadedFile[] = fileList.map(file => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      status: 'uploading',
-      progress: 0,
-      documentType: selectedType,
-      file: file
-    }));
-
-    setFiles(prev => [...prev, ...newFiles]);
-
-    // Start upload process for each file
-    newFiles.forEach(file => {
-      uploadToSupabase(file, user, source, keywords, updateFileProgress, fetchStoredDocuments);
-    });
   };
 
   const updateFileProgress = (fileId: string, progress: number, status: UploadedFile['status']) => {
@@ -109,7 +94,7 @@ export function DocumentUpload() {
   };
 
   const handleAnalyzeContract = (document: StoredDocument) => {
-    analyzeContract(document, user, navigate);
+    analyzeContract(document, user as unknown as SupabaseUser, navigate);
   };
 
   const navigateToAnalysis = () => {
@@ -128,7 +113,7 @@ export function DocumentUpload() {
       const document: StoredDocument = {
         id: Math.random().toString(36).substr(2, 9),
         title: file.name,
-        type: 'szerződés',
+        type: selectedType,
         file_size: file.size,
         upload_date: new Date().toISOString(),
         file_path: '',

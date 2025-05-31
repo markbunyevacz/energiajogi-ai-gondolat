@@ -1,138 +1,109 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { UserRole } from '@/types';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { AuthContextType, User, Profile } from '@/types';
 
-export interface Profile {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  avatar_url?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  profile: null,
+  isLoading: true,
+  login: async () => {},
+  signup: async () => {},
+  logout: async () => {},
+});
 
-interface AuthContextType {
-  user: Profile | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching profile:', error);
-          return;
-        }
-
-        if (profile) {
-          setUser({
-            id: profile.id,
-            email: profile.email,
-            name: profile.name,
-            role: profile.role,
-            avatar_url: profile.avatar_url || undefined,
-            created_at: profile.created_at || undefined,
-            updated_at: profile.updated_at || undefined
-          });
-        }
-      } else {
-        setUser(null);
+        const userData: User = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || '',
+          email: session.user.email!,
+          role: session.user.user_metadata?.role || 'jogász',
+          avatar: session.user.user_metadata?.avatar_url,
+        };
+        setUser(userData);
+        fetchProfile(session.user.id);
       }
-      setLoading(false);
+      setIsLoading(false);
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const userData: User = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || '',
+          email: session.user.email!,
+          role: session.user.user_metadata?.role || 'jogász',
+          avatar: session.user.user_metadata?.avatar_url,
+        };
+        setUser(userData);
+        fetchProfile(session.user.id);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  async function fetchProfile(userId: string) {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) throw error;
+      if (data) setProfile(data as Profile);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  }
+
+  const value = {
+    user,
+    profile,
+    isLoading,
+    login: async (email: string, password: string) => {
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
       if (error) throw error;
-
-      if (data.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profileError) throw profileError;
-
-        if (profile) {
-          setUser({
-            id: profile.id,
-            email: profile.email,
-            name: profile.name,
-            role: profile.role,
-            avatar_url: profile.avatar_url || undefined,
-            created_at: profile.created_at || undefined,
-            updated_at: profile.updated_at || undefined
-          });
-        }
-      }
-
-      navigate('/dashboard');
-      toast.success('Sikeres bejelentkezés');
-    } catch (error) {
-      console.error('Error signing in:', error);
-      toast.error('Hiba történt a bejelentkezés során');
-    }
-  };
-
-  const signOut = async () => {
-    try {
+    },
+    signup: async (email: string, password: string) => {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) throw error;
+    },
+    logout: async () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      setUser(null);
-      navigate('/login');
-      toast.success('Sikeres kijelentkezés');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error('Hiba történt a kijelentkezés során');
-    }
+    },
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      signIn, 
-      signOut, 
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

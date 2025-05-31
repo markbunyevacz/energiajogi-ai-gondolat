@@ -3,13 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import { ContractAnalysis } from '@/types';
-import { Timeline, TimelineItem } from "@/components/ui/timeline";
+import { Timeline, TimelineItem } from "../ui/timeline";
 
 interface AnalysisTimelineProps {
   analysis: ContractAnalysis;
+  analyses?: ContractAnalysis[];
 }
 
-export function AnalysisTimeline({ analysis }: AnalysisTimelineProps) {
+export function AnalysisTimeline({ analysis, analyses = [] }: AnalysisTimelineProps) {
   const timelineItems = [
     {
       title: 'Dokumentum feltöltés',
@@ -78,6 +79,21 @@ export function AnalysisTimeline({ analysis }: AnalysisTimelineProps) {
     });
   };
 
+  // Group analyses by date
+  const groupedByDate = analyses.reduce((acc, analysis) => {
+    const date = new Date(analysis.timestamp || analysis.created_at).toLocaleDateString('hu-HU');
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(analysis);
+    return acc;
+  }, {} as Record<string, ContractAnalysis[]>);
+
+  // Sort analyses by date
+  const sortedAnalyses = Object.values(groupedByDate).flat().sort((a, b) => {
+    return new Date(b.timestamp || b.created_at).getTime() - new Date(a.timestamp || a.created_at).getTime();
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -104,7 +120,7 @@ export function AnalysisTimeline({ analysis }: AnalysisTimelineProps) {
               <div className="flex items-center space-x-2 pb-2 border-b border-gray-200">
                 <Calendar className="w-4 h-4 text-gray-500" />
                 <h3 className="font-medium text-gray-900">
-                  {formatDate(dayAnalyses[0].timestamp)}
+                  {formatDate(dayAnalyses[0].timestamp || dayAnalyses[0].created_at)}
                 </h3>
                 <Badge variant="secondary" className="text-xs">
                   {dayAnalyses.length} elemzés
@@ -134,7 +150,7 @@ export function AnalysisTimeline({ analysis }: AnalysisTimelineProps) {
                             </Badge>
                           </div>
                           <div className="text-sm text-gray-500">
-                            {formatTime(analysis.timestamp)}
+                            {formatTime(analysis.timestamp || analysis.created_at)}
                           </div>
                         </div>
                         

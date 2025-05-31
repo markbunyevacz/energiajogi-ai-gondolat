@@ -22,7 +22,11 @@ export function ContractAnalysis() {
           risks: generateMockRisks(),
           recommendations: generateMockRecommendations(),
           summary: 'Az AI elemzés befejeződött. A szerződés részletes áttekintése alapján azonosított kockázatok és javaslatok.',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          title: '',
+          description: '',
+          status: 'pending',
+          created_at: ''
         };
         
         setAnalysisResults(prev => [newAnalysis, ...prev]);

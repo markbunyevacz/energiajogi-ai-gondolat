@@ -1,9 +1,9 @@
-import { Analysis } from '@/types';
+import { ContractAnalysis } from '@/types';
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Shield } from 'lucide-react';
 
 interface AnalysisProcessingStepsProps {
-  analysis: Analysis;
+  analysis: ContractAnalysis;
 }
 
 export function AnalysisProcessingSteps({ analysis }: AnalysisProcessingStepsProps) {

@@ -1,27 +1,26 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
   PieChart, 
   Pie, 
   Cell,
   LineChart,
   Line,
-  ResponsiveContainer
+  ResponsiveContainer,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend
 } from 'recharts';
 import { ContractAnalysis, Risk } from '@/types';
 import { TrendingUp, PieChart as PieChartIcon, BarChart as BarChartIcon } from 'lucide-react';
 
 interface AnalysisRiskChartsProps {
   analysis: ContractAnalysis;
+  analyses?: ContractAnalysis[];
 }
 
-export function AnalysisRiskCharts({ analysis }: AnalysisRiskChartsProps) {
+export function AnalysisRiskCharts({ analysis, analyses = [] }: AnalysisRiskChartsProps) {
   const risks = analysis.risks || [];
   
   const risksByType = risks.reduce((acc, risk) => {
@@ -43,6 +42,23 @@ export function AnalysisRiskCharts({ analysis }: AnalysisRiskChartsProps) {
     financial: '#0088FE',
     operational: '#00C49F'
   };
+
+  // Calculate risk level distribution
+  const riskLevelData = [
+    { name: 'Magas', value: risks.filter(r => r.level === 'high').length, color: '#ef4444' },
+    { name: 'Közepes', value: risks.filter(r => r.level === 'medium').length, color: '#f59e0b' },
+    { name: 'Alacsony', value: risks.filter(r => r.level === 'low').length, color: '#10b981' }
+  ];
+
+  // Generate timeline data
+  const timelineData = analyses.map(analysis => ({
+    date: new Date(analysis.timestamp || analysis.created_at).toLocaleDateString('hu-HU'),
+    risks: analysis.risks.length,
+    riskLevel: analysis.risks.reduce((acc, risk) => {
+      const levelValue = risk.level === 'high' ? 3 : risk.level === 'medium' ? 2 : 1;
+      return acc + levelValue;
+    }, 0) / analysis.risks.length
+  }));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,5 +1,4 @@
-import React from 'react';
-import { AlertCircle, XCircle, AlertTriangle, Info, RefreshCw } from 'lucide-react';
+import { AlertCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export type ErrorCode = 
@@ -20,8 +19,8 @@ interface ErrorDisplayProps {
   };
 }
 
-const getErrorIcon = (code: ErrorCode, severity: 'error' | 'warning' | 'info') => {
-  const baseClasses = "h-5 w-5";
+const getErrorIcon = (severity: 'error' | 'warning' | 'info') => {
+  const baseClasses = "h-4 w-4";
   
   switch (severity) {
     case 'error':
@@ -56,39 +55,10 @@ const getErrorTitle = (code: ErrorCode) => {
   }
 };
 
-const getErrorBackground = (severity: 'error' | 'warning' | 'info') => {
-  switch (severity) {
-    case 'error':
-      return 'bg-red-50';
-    case 'warning':
-      return 'bg-yellow-50';
-    case 'info':
-      return 'bg-blue-50';
-    default:
-      return 'bg-red-50';
-  }
-};
-
-const getErrorTextColor = (severity: 'error' | 'warning' | 'info') => {
-  switch (severity) {
-    case 'error':
-      return 'text-red-800';
-    case 'warning':
-      return 'text-yellow-800';
-    case 'info':
-      return 'text-blue-800';
-    default:
-      return 'text-red-800';
-  }
-};
-
 export function ErrorDisplay({ error }: ErrorDisplayProps) {
-  const bgColor = getErrorBackground(error.severity);
-  const textColor = getErrorTextColor(error.severity);
-
   return (
-    <Alert variant="destructive">
-      <AlertCircle className="h-4 w-4" />
+    <Alert variant={error.severity === 'error' ? 'destructive' : 'default'}>
+      {getErrorIcon(error.severity)}
       <AlertTitle>{getErrorTitle(error.code)}</AlertTitle>
       <AlertDescription>
         {error.message}
