@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { useAnalyticsTracking } from './useAnalyticsTracking';
 import { useAuth } from './useAuth';
@@ -17,7 +16,7 @@ interface UserSession {
 
 export function useUserBehaviorTracking() {
   const { trackEvent, trackUserAction } = useAnalyticsTracking();
-  const { user } = useAuth();
+  const { } = useAuth();
   const sessionRef = useRef<UserSession | null>(null);
   const inactivityTimerRef = useRef<NodeJS.Timeout>();
 
