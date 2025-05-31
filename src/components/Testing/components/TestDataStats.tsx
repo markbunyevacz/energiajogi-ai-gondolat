@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { FileText, MessageSquare, BarChart3, Users } from 'lucide-react';
 

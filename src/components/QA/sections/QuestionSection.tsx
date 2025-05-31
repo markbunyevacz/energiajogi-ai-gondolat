@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Clock } from 'lucide-react';
 import { formatTimestamp, getConfidenceColor, getConfidenceLabel } from '../utils/qaHelpers';

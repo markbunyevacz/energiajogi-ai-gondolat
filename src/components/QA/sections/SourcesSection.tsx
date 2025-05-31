@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Book, ExternalLink } from 'lucide-react';
 import { 

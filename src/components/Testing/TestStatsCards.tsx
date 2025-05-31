@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { TestStats } from './types';
