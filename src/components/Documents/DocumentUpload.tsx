@@ -4,25 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type DocumentType = Database['public']['Enums']['document_type'];
 type AnalysisStatus = 'not_analyzed' | 'analyzing' | 'completed' | 'failed';
-
-interface UploadedFile {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  status: 'uploading' | 'processing' | 'ai-processing' | 'completed' | 'error';
-  progress: number;
-  documentType?: DocumentType;
-  file?: File;
-  documentId?: string;
-}
 
 export interface StoredDocument {
   id: string;
