@@ -1,9 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { User } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 import { extractTextFromPDF, isValidTextContent, sanitizeTextContent } from './pdfTextExtractor';
+import type { Database } from '@/integrations/supabase/types';
 
-type DocumentType = 'szerződés' | 'rendelet' | 'szabályzat' | 'törvény' | 'határozat' | 'egyéb';
+type DocumentType = Database['public']['Enums']['document_type'];
 
 interface UploadedFile {
   id: string;
@@ -96,7 +97,7 @@ export const uploadToSupabase = async (
       .from('documents')
       .insert({
         title: file.name,
-        type: file.documentType,
+        type: file.documentType || 'egyéb',
         file_size: file.size,
         uploaded_by: user.id,
         content: content,
@@ -106,7 +107,7 @@ export const uploadToSupabase = async (
           original_filename: file.name,
           content_type: file.file.type
         }
-      })
+      } satisfies Database['public']['Tables']['documents']['Insert'])
       .select()
       .single();
 

@@ -1,20 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from '@/integrations/supabase/client';
-import { ContractAnalysisPrompt } from './ContractAnalysisPrompt';
-import { uploadToSupabase, analyzeContract } from './utils/documentUploadUtils';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, FileText, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { Upload } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
 
-export type DocumentType = 'szerződés' | 'rendelet' | 'szabályzat' | 'törvény' | 'határozat' | 'egyéb';
-export type AnalysisStatus = 'not_analyzed' | 'analyzing' | 'completed' | 'failed';
+type DocumentType = Database['public']['Enums']['document_type'];
+type AnalysisStatus = 'not_analyzed' | 'analyzing' | 'completed' | 'failed';
 
 interface UploadedFile {
   id: string;
@@ -41,13 +37,9 @@ export interface StoredDocument {
 }
 
 export function DocumentUpload() {
-  const [files, setFiles] = useState<UploadedFile[]>([]);
   const [storedDocuments, setStoredDocuments] = useState<StoredDocument[]>([]);
-  const [selectedType, setSelectedType] = useState<DocumentType>('egyéb');
-  const [keywords, setKeywords] = useState('');
-  const [source, setSource] = useState('');
+  const [selectedType] = useState<DocumentType>('egyéb');
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -67,7 +59,6 @@ export function DocumentUpload() {
     if (error) {
       console.error('Error fetching documents:', error);
     } else {
-      // Type cast the analysis_status to ensure it matches our union type
       const typedDocuments = (data || []).map(doc => ({
         id: doc.id,
         title: doc.title,
@@ -83,22 +74,15 @@ export function DocumentUpload() {
     }
   };
 
-  const updateFileProgress = (fileId: string, progress: number, status: UploadedFile['status']) => {
-    setFiles(prev => prev.map(file => 
-      file.id === fileId ? { ...file, progress, status } : file
+  const handleDocumentTypeChange = (documentId: string, newType: DocumentType) => {
+    setStoredDocuments(prev => prev.map(doc => 
+      doc.id === documentId ? { ...doc, type: newType } : doc
     ));
   };
 
-  const removeFile = (fileId: string) => {
-    setFiles(prev => prev.filter(file => file.id !== fileId));
-  };
-
-  const handleAnalyzeContract = (document: StoredDocument) => {
-    analyzeContract(document, user as unknown as SupabaseUser, navigate);
-  };
-
-  const navigateToAnalysis = () => {
-    navigate('/contract-analysis');
+  const handleDocumentDelete = (documentId: string) => {
+    setStoredDocuments(prev => prev.filter(doc => doc.id !== documentId));
+    toast.success('Dokumentum sikeresen törölve');
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,85 +113,61 @@ export function DocumentUpload() {
     toast.success('Dokumentumok sikeresen feltöltve');
   };
 
-  const handleDocumentTypeChange = (documentId: string, newType: DocumentType) => {
-    setStoredDocuments(prev => prev.map(doc => 
-      doc.id === documentId ? { ...doc, type: newType } : doc
-    ));
-  };
-
-  const handleDocumentDelete = (documentId: string) => {
-    setStoredDocuments(prev => prev.filter(doc => doc.id !== documentId));
-    toast.success('Dokumentum sikeresen törölve');
-  };
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Upload className="w-5 h-5 text-blue-600" />
-          <span>Dokumentum Feltöltés</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="files">Válasszon dokumentumokat</Label>
-          <Input
-            id="files"
-            type="file"
-            multiple
-            accept=".pdf,.doc,.docx,.txt"
-            onChange={handleFileUpload}
-            disabled={isUploading}
-            className="cursor-pointer"
-          />
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center space-x-4">
+        <Input
+          type="file"
+          accept=".pdf,.doc,.docx,.txt"
+          onChange={handleFileUpload}
+          disabled={isUploading}
+        />
+        <Button
+          onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
+          disabled={isUploading}
+        >
+          <Upload className="w-4 h-4 mr-2" />
+          Fájl kiválasztása
+        </Button>
+      </div>
 
-        {storedDocuments.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Feltöltött dokumentumok</h3>
-            <div className="space-y-2">
-              {storedDocuments.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="text-sm font-medium">{doc.title}</p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(doc.upload_date).toLocaleDateString('hu-HU')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Select
-                      value={doc.type}
-                      onValueChange={(value: DocumentType) => handleDocumentTypeChange(doc.id, value)}
-                    >
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="szerződés">Szerződés</SelectItem>
-                        <SelectItem value="rendelet">Rendelet</SelectItem>
-                        <SelectItem value="szabályzat">Szabályzat</SelectItem>
-                        <SelectItem value="törvény">Törvény</SelectItem>
-                        <SelectItem value="határozat">Határozat</SelectItem>
-                        <SelectItem value="egyéb">Egyéb</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDocumentDelete(doc.id)}
-                    >
-                      Törlés
-                    </Button>
-                  </div>
-                </div>
-              ))}
+      {storedDocuments.length > 0 && (
+        <div className="space-y-4">
+          {storedDocuments.map(doc => (
+            <div key={doc.id} className="flex items-center space-x-4 p-4 border rounded-lg">
+              <div className="flex-1">
+                <h3 className="font-medium">{doc.title}</h3>
+                <p className="text-sm text-gray-500">
+                  {new Date(doc.upload_date).toLocaleDateString()}
+                </p>
+              </div>
+              <Select
+                value={doc.type}
+                onValueChange={(value) => handleDocumentTypeChange(doc.id, value as DocumentType)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Dokumentum típusa" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="szerződés">Szerződés</SelectItem>
+                  <SelectItem value="rendelet">Rendelet</SelectItem>
+                  <SelectItem value="szabályzat">Szabályzat</SelectItem>
+                  <SelectItem value="törvény">Törvény</SelectItem>
+                  <SelectItem value="határozat">Határozat</SelectItem>
+                  <SelectItem value="egyéb">Egyéb</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleDocumentDelete(doc.id)}
+              >
+                Törlés
+              </Button>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

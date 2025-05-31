@@ -1,10 +1,9 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useRealTimeAnalytics } from '@/hooks/useRealTimeAnalytics';
 import { Activity, Users, Clock, DollarSign, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
 export function RealTimeDashboard() {
   const { data, isLoading, error } = useRealTimeAnalytics(24);
@@ -184,7 +183,7 @@ export function RealTimeDashboard() {
                   fill="#8884d8"
                   dataKey="cost"
                 >
-                  {(data.costs.by_service || []).map((entry, index) => (
+                  {(data.costs.by_service || []).map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

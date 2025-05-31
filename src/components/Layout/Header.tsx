@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -68,9 +67,9 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={profile?.avatar_url} alt={profile?.name} />
+                      <AvatarImage src={profile?.avatar_url} alt={profile?.full_name} />
                       <AvatarFallback>
-                        {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+                        {profile?.full_name?.charAt(0)?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -78,7 +77,7 @@ export function Header() {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium">{profile?.name}</p>
+                      <p className="font-medium">{profile?.full_name}</p>
                       <p className="w-[200px] truncate text-sm text-muted-foreground">
                         {profile?.email}
                       </p>

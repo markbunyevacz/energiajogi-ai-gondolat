@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/hooks/useAuth";
 import { ContractAnalysis } from '@/types';
@@ -55,7 +54,16 @@ export function useContractAnalysis() {
       console.log('useContractAnalysis: Fetching contracts for user:', user.id);
       const contractsData = await fetchAvailableContracts(user.id);
       console.log('useContractAnalysis: Contracts fetched:', contractsData.length);
-      setAvailableContracts(contractsData);
+      setAvailableContracts(contractsData.map(contract => ({
+        id: contract.id,
+        title: contract.title,
+        type: contract.type,
+        file_size: contract.file_size || 0,
+        upload_date: contract.upload_date || new Date().toISOString(),
+        content: contract.content,
+        analysis_status: contract.analysis_status || 'not_analyzed',
+        analysis_error: contract.analysis_error
+      })));
     } catch (error) {
       console.error('useContractAnalysis: Error fetching available contracts:', error);
       toast.error('Hiba a szerződések betöltésekor');

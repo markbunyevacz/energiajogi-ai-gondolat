@@ -55,7 +55,7 @@ export class ErrorHandlingService {
     });
 
     // Rate limit - longer delays
-    this.retryConfigs.set(ErrorCodes.RATE_LIMIT_ERROR, {
+    this.retryConfigs.set(ErrorCodes.API_RATE_LIMIT, {
       maxAttempts: 2,
       initialDelay: 60000,
       maxDelay: 120000,
@@ -79,6 +79,33 @@ export class ErrorHandlingService {
       maxDelay: 25000,
       backoffFactor: 1.5,
       jitter: true
+    });
+
+    // Contract analysis errors - more attempts due to potential temporary issues
+    this.retryConfigs.set(ErrorCodes.CONTRACT_ANALYSIS_ERROR, {
+      maxAttempts: 4,
+      initialDelay: 3000,
+      maxDelay: 25000,
+      backoffFactor: 1.5,
+      jitter: true
+    });
+
+    // Contract validation errors - more attempts due to potential temporary issues
+    this.retryConfigs.set(ErrorCodes.CONTRACT_VALIDATION_ERROR, {
+      maxAttempts: 4,
+      initialDelay: 3000,
+      maxDelay: 25000,
+      backoffFactor: 1.5,
+      jitter: true
+    });
+
+    // New API rate limit error
+    this.retryConfigs.set(ErrorCodes.API_RATE_LIMIT, {
+      maxAttempts: 2,
+      initialDelay: 60000,
+      maxDelay: 120000,
+      backoffFactor: 1,
+      jitter: false
     });
   }
 
@@ -133,10 +160,13 @@ export class ErrorHandlingService {
   private isRetryableError(error: ContractAnalysisError): boolean {
     const retryableCodes = [
       ErrorCodes.NETWORK_ERROR,
-      ErrorCodes.RATE_LIMIT_ERROR,
+      ErrorCodes.API_RATE_LIMIT,
       ErrorCodes.API_ERROR,
       ErrorCodes.DOCUMENT_PROCESSING_ERROR,
-      ErrorCodes.OCR_ERROR
+      ErrorCodes.OCR_ERROR,
+      ErrorCodes.CONTRACT_ANALYSIS_ERROR,
+      ErrorCodes.CONTRACT_VALIDATION_ERROR,
+      ErrorCodes.API_RATE_LIMIT
     ] as const;
     return retryableCodes.includes(error.code as typeof retryableCodes[number]);
   }
@@ -149,7 +179,6 @@ export class ErrorHandlingService {
     const baseResponse: ErrorResponse = {
       code: error.code as ErrorCode,
       message: error.message,
-      details: error.details,
       severity: error.severity,
       timestamp: new Date().toISOString(),
       retryable: this.isRetryableError(error)
@@ -174,7 +203,7 @@ export class ErrorHandlingService {
 
   private getErrorAction(error: ContractAnalysisError) {
     switch (error.code) {
-      case ErrorCodes.CONTRACT_VALIDATION_FAILED:
+      case ErrorCodes.CONTRACT_VALIDATION_ERROR:
         return {
           label: 'Szerződés javítása',
           onClick: () => {
@@ -192,13 +221,13 @@ export class ErrorHandlingService {
             console.log('Re-authenticating...');
           }
         };
-      case ErrorCodes.RATE_LIMIT_ERROR:
+      case ErrorCodes.API_RATE_LIMIT:
         return {
           label: 'Várjon 1 percet',
           onClick: () => {
-            this.logger.log('info', 'Waiting for rate limit', error);
-            // Implement rate limit handling
-            console.log('Waiting for rate limit...');
+            this.logger.log('info', 'Waiting for API rate limit', error);
+            // Implement API rate limit handling
+            console.log('Waiting for API rate limit...');
             setTimeout(() => this.handleRetry(error), 60000);
           }
         };
@@ -224,6 +253,22 @@ export class ErrorHandlingService {
           label: 'OCR újrafuttatása',
           onClick: () => {
             this.logger.log('info', 'Retrying OCR processing', error);
+            this.handleRetry(error);
+          }
+        };
+      case ErrorCodes.CONTRACT_ANALYSIS_ERROR:
+        return {
+          label: 'Szerződés elemzése újra',
+          onClick: () => {
+            this.logger.log('info', 'Retrying contract analysis', error);
+            this.handleRetry(error);
+          }
+        };
+      case ErrorCodes.CONTRACT_VALIDATION_ERROR:
+        return {
+          label: 'Szerződés validálása újra',
+          onClick: () => {
+            this.logger.log('info', 'Retrying contract validation', error);
             this.handleRetry(error);
           }
         };

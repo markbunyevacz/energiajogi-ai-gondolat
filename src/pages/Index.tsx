@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/Layout/ProtectedRoute";
 import { Header } from "@/components/Layout/Header";
@@ -94,7 +93,7 @@ const Index = () => {
           <div className="space-y-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                Üdvözöljük, {profile?.name || 'Felhasználó'}!
+                Üdvözöljük, {profile?.full_name || 'Felhasználó'}!
               </h1>
               <p className="text-gray-600 mt-2">
                 {profile?.role === 'jogász' && 'Jogi AI asszisztens - Intelligens ágensek és proaktív javaslatok'}

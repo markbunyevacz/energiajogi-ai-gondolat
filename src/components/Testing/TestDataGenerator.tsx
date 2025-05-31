@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,7 +69,7 @@ export function TestDataGenerator() {
 
       toast.success('Teszt adatok sikeresen generálva!');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating test data:', error);
       toast.error(`Hiba a teszt adatok generálása során: ${error.message}`);
     } finally {

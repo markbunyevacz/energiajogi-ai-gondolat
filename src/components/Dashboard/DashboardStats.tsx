@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -56,10 +55,10 @@ export function DashboardStatsComponent({ role, stats }: DashboardStatsProps) {
         return [
           {
             title: 'API Teljesítmény',
-            value: `${analyticsData?.api_performance.avg_response_time.toFixed(0) || 'N/A'}ms`,
+            value: `${analyticsData?.api_performance?.avg_response_time?.toFixed(0) || 'N/A'}ms`,
             description: 'Átlagos válaszidő',
             icon: Activity,
-            trend: { value: 12, isPositive: analyticsData?.api_performance.avg_response_time < 2000 },
+            trend: { value: 12, isPositive: (analyticsData?.api_performance?.avg_response_time ?? 0) < 2000 },
             color: 'text-blue-600'
           },
           {
@@ -116,7 +115,7 @@ export function DashboardStatsComponent({ role, stats }: DashboardStatsProps) {
           },
           {
             title: 'Rendszer Hatékonyság',
-            value: `${analyticsData?.api_performance.avg_response_time < 2000 ? '95' : '87'}%`,
+            value: `${(analyticsData?.api_performance?.avg_response_time ?? 0) < 2000 ? '95' : '87'}%`,
             description: 'Teljesítmény index',
             icon: Shield,
             trend: { value: 18, isPositive: true },

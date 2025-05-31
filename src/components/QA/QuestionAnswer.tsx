@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -47,7 +46,16 @@ export function QuestionAnswer() {
       console.error('Error fetching sessions:', error);
       toast.error('Hiba a korábbi kérdések betöltésekor');
     } else {
-      setSessions(data || []);
+      setSessions(data?.map(session => ({
+        id: session.id,
+        question: session.question,
+        answer: session.answer,
+        sources: session.sources || [],
+        confidence: session.confidence || 0,
+        created_at: session.created_at || new Date().toISOString(),
+        agent_type: session.agent_type || undefined,
+        conversation_context: session.conversation_context
+      })) || []);
     }
   };
 

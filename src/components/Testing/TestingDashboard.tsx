@@ -8,12 +8,12 @@ import { TestDataGenerator } from './TestDataGenerator';
 import { FunctionalityTester } from './FunctionalityTester';
 import { PerformanceTester } from './PerformanceTester';
 import { AgentTester } from './AgentTester';
-import { RegressionTester } from './RegressionTester';
 import { TestStatsCards } from './TestStatsCards';
 import { TestProgressCard } from './TestProgressCard';
 import { TestCategoryFilter } from './TestCategoryFilter';
 import { TestResultsList } from './TestResultsList';
 import { TestResult, TestCategory, TestStats } from './types';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function TestingDashboard() {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -34,41 +34,54 @@ export function TestingDashboard() {
     { id: 'regression', name: 'Regresszió', icon: '🔄' }
   ];
 
-  // Enhanced test result management functions
-  const addTestResult = (result: Omit<TestResult, 'id' | 'timestamp'>) => {
+  const handleTestResult = (result: Omit<TestResult, 'id' | 'timestamp'>) => {
     const newResult: TestResult = {
       ...result,
       id: Math.random().toString(36).substr(2, 9),
       timestamp: new Date()
     };
-    
-    setTestResults(prev => {
-      // Remove any existing test with the same name to avoid duplicates
-      const filtered = prev.filter(r => r.testName !== result.testName);
-      return [newResult, ...filtered];
+    setTestResults(prev => [newResult, ...prev]);
+  };
+
+  const handleAgentTestComplete = (result: any) => {
+    handleTestResult({
+      testName: `Agent Test: ${result.agentType}`,
+      category: 'agents',
+      status: result.status === 'success' ? 'passed' : 'failed',
+      message: result.response,
+      details: {
+        question: result.question,
+        agentType: result.agentType
+      }
     });
-    return newResult.id;
   };
 
-  const updateTestResult = (testName: string, updates: Partial<TestResult>) => {
-    setTestResults(prev => 
-      prev.map(result => 
-        result.testName === testName 
-          ? { ...result, ...updates, timestamp: new Date() }
-          : result
-      )
-    );
+  const handleTestDataGenerated = (data: any) => {
+    handleTestResult({
+      testName: 'Test Data Generation',
+      category: 'documents',
+      status: 'passed',
+      message: 'Test data successfully generated',
+      details: data
+    });
   };
 
-  const clearAllTestResults = () => {
-    setTestResults([]);
+  const handlePerformanceTestResult = (result: any) => {
+    handleTestResult({
+      testName: 'Performance Test',
+      category: 'performance',
+      status: result.status,
+      message: result.message,
+      duration: result.duration,
+      details: result.details
+    });
   };
 
   const runTestWithUpdate = async (testName: string, category: TestResult['category'], duration: number) => {
     console.log(`Starting test: ${testName}`);
     
     // Add running test
-    addTestResult({
+    handleTestResult({
       testName,
       category,
       status: 'running',
@@ -101,7 +114,9 @@ export function TestingDashboard() {
     // Improved status determination - more passed, fewer warnings
     const status = accuracy > 0.92 ? 'passed' : (accuracy > 0.80 ? 'warning' : 'failed');
     
-    updateTestResult(testName, {
+    handleTestResult({
+      testName,
+      category,
       status,
       message: status === 'passed' 
         ? `✅ Teszt sikeresen befejezve (${Math.round(accuracy * 100)}% pontosság)`
@@ -118,7 +133,7 @@ export function TestingDashboard() {
   const runComprehensiveTestPlan = async () => {
     setIsRunningComprehensive(true);
     setTestProgress(0);
-    clearAllTestResults();
+    setTestResults([]);
     
     try {
       console.log('Starting comprehensive test plan...');
@@ -243,7 +258,7 @@ export function TestingDashboard() {
 
     } catch (error) {
       console.error('Comprehensive test execution error:', error);
-      addTestResult({
+      handleTestResult({
         testName: 'Tesztelési hiba',
         category: 'performance',
         status: 'failed',
@@ -259,7 +274,7 @@ export function TestingDashboard() {
 
   const runQuickRegression = async () => {
     setIsRunningComprehensive(true);
-    clearAllTestResults();
+    setTestResults([]);
     toast.info('Gyors regressziós teszt indítása...');
 
     try {
@@ -360,21 +375,64 @@ export function TestingDashboard() {
         </TabsContent>
 
         <TabsContent value="accounts">
-          <TestAccountManager />
+          <TestAccountManager
+            onAccountCreate={(account) => {
+              handleTestResult({
+                testName: 'Test Account Creation',
+                category: 'authentication',
+                status: 'passed',
+                message: `Account created: ${account.email}`
+              });
+            }}
+            onAccountDelete={(id) => {
+              handleTestResult({
+                testName: 'Test Account Deletion',
+                category: 'authentication',
+                status: 'passed',
+                message: `Account deleted: ${id}`
+              });
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="functionality">
-          <FunctionalityTester onTestResult={addTestResult} />
+          <FunctionalityTester onTestResult={handleTestResult} />
         </TabsContent>
 
         <TabsContent value="performance">
-          <PerformanceTester onTestResult={addTestResult} />
+          <PerformanceTester onTestResult={handlePerformanceTestResult} />
         </TabsContent>
 
         <TabsContent value="agents">
-          <AgentTester onTestResult={addTestResult} />
+          <AgentTester onTestComplete={handleAgentTestComplete} />
         </TabsContent>
       </Tabs>
+
+      {testResults.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Legutóbbi Teszt Eredmények</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {testResults.map(result => (
+                <div
+                  key={result.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div>
+                    <h3 className="font-medium">{result.testName}</h3>
+                    <p className="text-sm text-gray-600">{result.message}</p>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {result.timestamp.toLocaleTimeString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
