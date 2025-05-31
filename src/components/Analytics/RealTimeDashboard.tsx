@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useRealTimeAnalytics } from '@/hooks/useRealTimeAnalytics';
 import { Activity, Users, Clock, DollarSign, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
 export function RealTimeDashboard() {
   const { data, isLoading, error } = useRealTimeAnalytics(24);
