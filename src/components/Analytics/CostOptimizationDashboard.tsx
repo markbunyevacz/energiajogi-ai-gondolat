@@ -280,7 +280,7 @@ export function CostOptimizationDashboard() {
                   fill="#8884d8"
                   dataKey="cost"
                 >
-                  {costData.byService.map((entry, index) => (
+                  {costData.byService.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
