@@ -211,7 +211,8 @@ export function BatchAnalysisProcessor() {
       ));
 
       toast.success('Kötegelt elemzés sikeresen befejeződött');
-    } catch (error) {
+    } catch {
+      console.error('Error processing batch analysis');
       setBatchJobs(prev => prev.map(job => 
         job.id === newJob.id 
           ? { ...job, status: 'error' }

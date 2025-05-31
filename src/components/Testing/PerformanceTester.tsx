@@ -102,7 +102,7 @@ export function PerformanceTester({ onTestResult }: PerformanceTesterProps) {
 
         setProgress(((i + 1) / performanceTests.length) * 100);
       }
-    } catch (error) {
+    } catch {
       onTestResult({
         testName: 'Teljesítmény teszt hiba',
         category: 'performance',

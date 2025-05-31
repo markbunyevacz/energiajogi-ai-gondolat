@@ -134,7 +134,7 @@ export function FunctionalityTester({ onTestResult }: FunctionalityTesterProps) 
 
         setProgress(((i + 1) / functionalTests.length) * 100);
       }
-    } catch (error) {
+    } catch {
       onTestResult({
         testName: 'Funkcionalitás teszt hiba',
         category: 'performance',

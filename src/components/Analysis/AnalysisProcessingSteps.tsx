@@ -1,3 +1,4 @@
+import React from 'react';
 import { ContractAnalysis } from '@/types';
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Shield } from 'lucide-react';
