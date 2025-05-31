@@ -31,7 +31,6 @@ interface OptimizationRecommendation {
 export function CostOptimizationDashboard() {
   const [selectedTimeRange, setSelectedTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [budgetAlert, setBudgetAlert] = useState<boolean>(false);
-  const { trackCost } = useAnalyticsTracking();
 
   // Fetch cost data
   const { data: costData, isLoading } = useQuery({
@@ -283,7 +282,7 @@ export function CostOptimizationDashboard() {
                   fill="#8884d8"
                   dataKey="cost"
                 >
-                  {costData.byService.map((entry, index) => (
+                  {costData.byService.map((index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
