@@ -1,18 +1,32 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import { ContractAnalysis } from '@/types';
+import { Timeline, TimelineItem } from "@/components/ui/timeline";
 
 interface AnalysisTimelineProps {
-  analyses: ContractAnalysis[];
+  analysis: ContractAnalysis;
 }
 
-export function AnalysisTimeline({ analyses }: AnalysisTimelineProps) {
-  const sortedAnalyses = [...analyses].sort((a, b) => 
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
+export function AnalysisTimeline({ analysis }: AnalysisTimelineProps) {
+  const timelineItems = [
+    {
+      title: 'Dokumentum feltöltés',
+      description: 'A dokumentum sikeresen feltöltve',
+      date: analysis.created_at
+    },
+    {
+      title: 'Kockázatelemzés',
+      description: `${analysis.risks?.length || 0} kockázat azonosítva`,
+      date: analysis.timestamp || analysis.created_at
+    },
+    {
+      title: 'Javaslatok generálása',
+      description: `${analysis.recommendations.length} javaslat készült`,
+      date: analysis.timestamp || analysis.created_at
+    }
+  ];
 
   const getRiskIcon = (riskLevel: string) => {
     switch (riskLevel) {
@@ -64,16 +78,6 @@ export function AnalysisTimeline({ analyses }: AnalysisTimelineProps) {
     });
   };
 
-  // Group analyses by date
-  const groupedByDate = sortedAnalyses.reduce((groups, analysis) => {
-    const date = new Date(analysis.timestamp).toDateString();
-    if (!groups[date]) {
-      groups[date] = [];
-    }
-    groups[date].push(analysis);
-    return groups;
-  }, {} as Record<string, ContractAnalysis[]>);
-
   return (
     <Card>
       <CardHeader>
@@ -83,7 +87,18 @@ export function AnalysisTimeline({ analyses }: AnalysisTimelineProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
+        <Timeline>
+          {timelineItems.map((item, index) => (
+            <TimelineItem
+              key={index}
+              title={item.title}
+              description={item.description}
+              date={item.date}
+            />
+          ))}
+        </Timeline>
+
+        <div className="space-y-6 mt-6">
           {Object.entries(groupedByDate).map(([dateString, dayAnalyses]) => (
             <div key={dateString} className="space-y-4">
               <div className="flex items-center space-x-2 pb-2 border-b border-gray-200">

@@ -14,45 +14,35 @@ import {
   Line,
   ResponsiveContainer
 } from 'recharts';
-import { ContractAnalysis } from '@/types';
+import { ContractAnalysis, Risk } from '@/types';
 import { TrendingUp, PieChart as PieChartIcon, BarChart as BarChartIcon } from 'lucide-react';
 
 interface AnalysisRiskChartsProps {
-  analyses: ContractAnalysis[];
+  analysis: ContractAnalysis;
 }
 
-export function AnalysisRiskCharts({ analyses }: AnalysisRiskChartsProps) {
-  // Prepare data for risk level distribution
-  const riskLevelData = [
-    { name: 'Alacsony', value: analyses.filter(a => a.riskLevel === 'low').length, color: '#10B981' },
-    { name: 'Közepes', value: analyses.filter(a => a.riskLevel === 'medium').length, color: '#F59E0B' },
-    { name: 'Magas', value: analyses.filter(a => a.riskLevel === 'high').length, color: '#EF4444' }
-  ];
-
-  // Prepare data for risk types
-  const riskTypeData = analyses.reduce((acc, analysis) => {
-    analysis.risks.forEach(risk => {
-      const existing = acc.find(item => item.name === risk.type);
-      if (existing) {
-        existing.value += 1;
-      } else {
-        acc.push({ 
-          name: risk.type === 'legal' ? 'Jogi' : risk.type === 'financial' ? 'Pénzügyi' : 'Működési', 
-          value: 1 
-        });
-      }
-    });
+export function AnalysisRiskCharts({ analysis }: AnalysisRiskChartsProps) {
+  const risks = analysis.risks || [];
+  
+  const risksByType = risks.reduce((acc, risk) => {
+    const type = risk.type;
+    if (!acc[type]) {
+      acc[type] = [];
+    }
+    acc[type].push(risk);
     return acc;
-  }, [] as { name: string; value: number }[]);
+  }, {} as Record<string, Risk[]>);
 
-  // Prepare timeline data
-  const timelineData = analyses
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map(analysis => ({
-      date: new Date(analysis.timestamp).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' }),
-      risks: analysis.risks.length,
-      riskLevel: analysis.riskLevel === 'high' ? 3 : analysis.riskLevel === 'medium' ? 2 : 1
-    }));
+  const chartData = Object.entries(risksByType).map(([type, risks]) => ({
+    name: type,
+    value: risks.length
+  }));
+
+  const COLORS = {
+    legal: '#FF8042',
+    financial: '#0088FE',
+    operational: '#00C49F'
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -100,13 +90,26 @@ export function AnalysisRiskCharts({ analyses }: AnalysisRiskChartsProps) {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={riskTypeData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                label
+              >
+                {chartData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[entry.name as keyof typeof COLORS]} 
+                  />
+                ))}
+              </Pie>
               <Tooltip />
-              <Bar dataKey="value" fill="#3B82F6" />
-            </BarChart>
+              <Legend />
+            </PieChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>

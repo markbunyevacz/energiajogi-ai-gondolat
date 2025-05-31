@@ -6,19 +6,28 @@ export const generateMockRisks = () => {
       id: 'risk-1',
       description: 'Felmondási feltételek egyoldalúan a szolgáltató javára szólnak',
       level: 'high' as const,
-      type: 'contract_termination'
+      type: 'legal',
+      severity: 'high',
+      recommendation: 'Felmondási feltételek kiegyenlítése mindkét fél számára',
+      section: 'Felmondási záradék'
     },
     {
       id: 'risk-2',
       description: 'Késedelmi kamat mértéke magasabb a jogszabályi maximumnál',
       level: 'medium' as const,
-      type: 'financial'
+      type: 'financial',
+      severity: 'medium',
+      recommendation: 'Késedelmi kamat mértékének csökkentése a jogszabályi maximumra',
+      section: 'Késedelmi kamat'
     },
     {
       id: 'risk-3',
       description: 'Értesítési kötelezettségek nem szimmetrikusak',
       level: 'low' as const,
-      type: 'notification'
+      type: 'operational',
+      severity: 'low',
+      recommendation: 'Értesítési kötelezettségek kiegyenlítése',
+      section: 'Értesítési kötelezettségek'
     }
   ];
   
