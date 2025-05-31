@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,13 +15,15 @@ interface QuestionInputProps {
   results?: any;
   selectedQuestion: string;
   onQuestionChange: (question: string) => void;
+  placeholder?: string;
 }
 
 export function QuestionInput({ 
   onSubmit, 
   isLoading, 
   selectedQuestion, 
-  onQuestionChange 
+  onQuestionChange,
+  placeholder
 }: QuestionInputProps) {
   const [question, setQuestion] = useState('');
   const [agentAnalysis, setAgentAnalysis] = useState<any>(null);
@@ -92,7 +94,7 @@ export function QuestionInput({
             <Textarea
               value={currentQuestion}
               onChange={(e) => handleQuestionChange(e.target.value)}
-              placeholder="Tegye fel kérdését az energiajogi dokumentumokkal kapcsolatban..."
+              placeholder={placeholder || "Tegye fel kérdését az energiajogi dokumentumokkal kapcsolatban..."}
               className="min-h-[100px] resize-none"
               disabled={isLoading}
             />

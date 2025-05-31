@@ -1,9 +1,22 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import React from 'react';
+
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 interface AnalyticsEvent {
   event_type: string;
-  event_data?: Record<string, any>;
+  event_data?: JsonValue;
+  session_id?: string;
+  user_id?: string;
+  user_agent?: string;
+  ip_address?: string;
+  created_at?: string;
+}
+
+interface TrackEventOptions {
+  event_type: string;
+  event_data?: JsonValue;
   session_id?: string;
 }
 

@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PerformanceMetrics } from "@/components/Performance/PerformanceMetrics";
 import { RealTimeDashboard } from "@/components/Analytics/RealTimeDashboard";
