@@ -4,8 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useUserBehaviorTracking } from '@/hooks/useUserBehaviorTracking';
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { TrendingUp, Users, Target, Activity, Play, Pause, RotateCcw } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { TrendingUp, Target, Activity, Play, Pause } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface ABTest {
@@ -260,7 +260,7 @@ export function ABTestingFramework() {
 
       {/* Variant Comparison */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {activeTest.variants.map((variant, index) => (
+        {activeTest.variants.map((variant) => (
           <Card key={variant.id} className={winner.id === variant.id ? 'ring-2 ring-green-500' : ''}>
             <CardHeader>
               <div className="flex justify-between items-center">
