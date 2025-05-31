@@ -380,6 +380,128 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_sources: {
+        Row: {
+          id: string;
+          name: string;
+          type: Database['public']['Enums']['legal_source_type'];
+          base_url: string;
+          last_crawled_at: string | null;
+          crawl_frequency_minutes: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          type: Database['public']['Enums']['legal_source_type'];
+          base_url: string;
+          last_crawled_at?: string | null;
+          crawl_frequency_minutes?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          type?: Database['public']['Enums']['legal_source_type'];
+          base_url?: string;
+          last_crawled_at?: string | null;
+          crawl_frequency_minutes?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      crawler_jobs: {
+        Row: {
+          id: string;
+          source_id: string;
+          status: Database['public']['Enums']['crawler_status'];
+          started_at: string | null;
+          completed_at: string | null;
+          error_message: string | null;
+          documents_found: number;
+          documents_processed: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          source_id: string;
+          status?: Database['public']['Enums']['crawler_status'];
+          started_at?: string | null;
+          completed_at?: string | null;
+          error_message?: string | null;
+          documents_found?: number;
+          documents_processed?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          source_id?: string;
+          status?: Database['public']['Enums']['crawler_status'];
+          started_at?: string | null;
+          completed_at?: string | null;
+          error_message?: string | null;
+          documents_found?: number;
+          documents_processed?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "crawler_jobs_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "legal_sources";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      crawler_proxies: {
+        Row: {
+          id: string;
+          host: string;
+          port: number;
+          username: string | null;
+          password: string | null;
+          is_active: boolean;
+          last_used_at: string | null;
+          failure_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          host: string;
+          port: number;
+          username?: string | null;
+          password?: string | null;
+          is_active?: boolean;
+          last_used_at?: string | null;
+          failure_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          host?: string;
+          port?: number;
+          username?: string | null;
+          password?: string | null;
+          is_active?: boolean;
+          last_used_at?: string | null;
+          failure_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     }
     Views: {
       [_ in never]: never
@@ -497,16 +619,12 @@ export type Database = {
       }
     }
     Enums: {
-      document_type:
-        | "szerződés"
-        | "rendelet"
-        | "szabályzat"
-        | "törvény"
-        | "határozat"
-        | "egyéb"
-      risk_level: "low" | "medium" | "high"
-      risk_type: "legal" | "financial" | "operational"
-      user_role: "jogász" | "it_vezető" | "tulajdonos"
+      document_type: 'szerződés' | 'rendelet' | 'szabályzat' | 'törvény' | 'határozat' | 'egyéb';
+      risk_level: 'low' | 'medium' | 'high';
+      risk_type: 'legal' | 'financial' | 'operational' | 'compliance' | 'security' | 'privacy' | 'intellectual_property' | 'other';
+      user_role: 'jogász' | 'tulajdonos' | 'admin';
+      legal_source_type: 'magyar_kozlony' | 'official_journal' | 'court_decision' | 'legislation' | 'other';
+      crawler_status: 'pending' | 'running' | 'completed' | 'failed' | 'rate_limited';
     }
     CompositeTypes: {
       [_ in never]: never
