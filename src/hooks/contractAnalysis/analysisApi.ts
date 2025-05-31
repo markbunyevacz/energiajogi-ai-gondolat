@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ContractAnalysis } from '@/types';
 import { StoredDocument } from './types';
@@ -40,7 +39,11 @@ export const fetchContractAnalyses = async (userId: string) => {
     summary: item.summary || '',
     recommendations: item.recommendations || [],
     timestamp: item.created_at,
-    risks: item.risks || []
+    risks: item.risks || [],
+    title: item.title || 'Contract Analysis',
+    description: item.summary,
+    status: 'completed',
+    created_at: item.created_at || new Date().toISOString()
   }));
 
   console.log('Transformed analyses:', transformedAnalyses);

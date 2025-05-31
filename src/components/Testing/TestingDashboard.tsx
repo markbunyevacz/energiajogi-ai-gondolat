@@ -56,16 +56,6 @@ export function TestingDashboard() {
     });
   };
 
-  const handleTestDataGenerated = (data: any) => {
-    handleTestResult({
-      testName: 'Test Data Generation',
-      category: 'documents',
-      status: 'passed',
-      message: 'Test data successfully generated',
-      details: data
-    });
-  };
-
   const handlePerformanceTestResult = (result: any) => {
     handleTestResult({
       testName: 'Performance Test',
@@ -382,14 +372,6 @@ export function TestingDashboard() {
                 category: 'authentication',
                 status: 'passed',
                 message: `Account created: ${account.email}`
-              });
-            }}
-            onAccountDelete={(id) => {
-              handleTestResult({
-                testName: 'Test Account Deletion',
-                category: 'authentication',
-                status: 'passed',
-                message: `Account deleted: ${id}`
               });
             }}
           />
