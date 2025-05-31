@@ -11,7 +11,6 @@ import { ContractAnalysisResults } from './ContractAnalysisResults';
 import { 
   filterAnalyses, 
   sortAnalyses, 
-  exportAnalysis, 
   calculateCompletionRate 
 } from './DashboardUtils';
 
