@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { StoredDocument } from './types';
 import { 
@@ -76,7 +75,7 @@ export const saveDocumentAndAnalyze = async (
       title: documentData.title,
       type: documentData.type,
       file_size: documentData.file_size || 0,
-      upload_date: documentData.upload_date || documentData.created_at,
+      upload_date: documentData.upload_date ?? documentData.created_at ?? "",
       content: documentData.content,
       analysis_status: 'not_analyzed',
       analysis_error: null
