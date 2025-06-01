@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "crawler": "ts-node --loader ts-node/esm src/scripts/start-crawler.ts",
-    "crawl": "tsx src/scripts/run-crawler.ts"
+    "crawl": "tsx src/scripts/run-crawler.ts",
+    "validate": "tsx src/scripts/validate-implementation.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.18.0",
@@ -83,6 +84,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
+    "@types/glob": "^8.1.0",
     "@types/node": "^20.0.0",
     "@types/pdfjs-dist": "^2.10.377",
     "@types/react": "^18.2.0",
