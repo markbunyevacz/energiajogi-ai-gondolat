@@ -1,4 +1,4 @@
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/types.js';
 
 export type LegalSourceType = Database['public']['Enums']['legal_source_type'];
 export type CrawlerStatus = Database['public']['Enums']['crawler_status'];
@@ -6,11 +6,9 @@ export type CrawlerStatus = Database['public']['Enums']['crawler_status'];
 export interface LegalSource {
   id: string;
   name: string;
-  type: LegalSourceType;
-  base_url: string;
-  last_crawled_at: string | null;
-  crawl_frequency_minutes: number;
-  is_active: boolean;
+  url: string;
+  type: string;
+  crawlFrequency: number;
 }
 
 export interface CrawlerJob {
@@ -25,22 +23,22 @@ export interface CrawlerJob {
 }
 
 export interface CrawlerProxy {
-  id: string;
-  host: string;
-  port: number;
+  server: string;
   username?: string;
   password?: string;
-  is_active: boolean;
-  last_used_at: string | null;
-  failure_count: number;
 }
 
 export interface CrawlerConfig {
-  maxRetries: number;
-  retryDelay: number;
-  requestTimeout: number;
-  rateLimitDelay: number;
-  maxConcurrentRequests: number;
+  name: string;
+  baseUrl: string;
+  maxRequestsPerMinute: number;
+  minDelayBetweenRequests: number;
+  retryConfig: {
+    maxAttempts: number;
+    initialDelay: number;
+    maxDelay: number;
+    backoffFactor: number;
+  };
 }
 
 export interface DocumentMetadata {
@@ -57,10 +55,17 @@ export interface DocumentMetadata {
 
 export interface CrawlerResult {
   success: boolean;
+  documents: any[];
+  errors: string[];
+  startTime: Date;
+  endTime: Date;
+  source: LegalSource;
+}
+
+export interface CrawlLog {
+  url: string;
+  status: 'success' | 'error';
   error?: string;
-  documents?: {
-    title: string;
-    content: string;
-    metadata: DocumentMetadata;
-  }[];
+  timestamp: Date;
+  source: string;
 } 
