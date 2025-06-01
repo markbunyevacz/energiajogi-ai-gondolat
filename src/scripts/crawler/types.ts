@@ -20,12 +20,12 @@ export interface DocumentMetadata {
   title: string;
   source: string;
   url: string;
-  publishedDate: Date;
-  lastModified: Date;
-  documentType: 'PDF' | 'HTML';
+  publishedDate: string;
+  lastModified: string;
+  documentType: string;
   hash: string;
-  content_text?: string;
-  metadata?: Record<string, any>;
+  content_text: string;
+  metadata: Record<string, any>;
 }
 
 export interface CrawlerStats {
@@ -48,4 +48,14 @@ export interface ChangeDetectionResult {
   isModified: boolean;
   similarityScore: number;
   previousVersion?: DocumentMetadata;
+}
+
+export interface CrawlerJob {
+  id: string;
+  source_url: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  priority: number;
+  created_at: string;
+  last_updated: string;
+  error_message?: string;
 } 
