@@ -40,21 +40,29 @@ if (typeof global.DOMMatrix === 'undefined') {
 }
 
 const require = createRequire(import.meta.url);
-const pdfjsLib = require('pdfjs-dist/build/pdf.mjs');
+const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
 
 // Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/build/pdf.worker.mjs');
+pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.js');
+
+// export class HungarianGazetteCrawler extends BaseCrawler {
+//   ...
+// }
+// (Class implementation remains, but export is commented out for now)
 
 export class HungarianGazetteCrawler extends BaseCrawler {
   private readonly source: LegalSource;
   private readonly contentSelectors = [
-    '.md2html',
     '.document-content',
     '.content',
     '.panel-body',
     '#document-content',
     '.document-body',
-    '.document-text'
+    '.document-text',
+    '.document-view',
+    '.document-container',
+    '.document-wrapper',
+    '.jogszabaly-szoveg'
   ];
 
   constructor(source: LegalSource, config: CrawlerConfig) {
@@ -63,31 +71,63 @@ export class HungarianGazetteCrawler extends BaseCrawler {
   }
 
   private async downloadPDF(page: Page, url: string): Promise<string> {
-    const response = await page.goto(url);
-    if (!response) {
-      throw new Error('Failed to download PDF');
-    }
+    try {
+      // Create a new page for PDF download
+      const pdfPage = await page.context().newPage();
+      
+      // Set up response handler before navigation
+      const responsePromise = pdfPage.waitForResponse(
+        response => response.url().includes('/pdf') && response.ok(),
+        { timeout: 30000 }
+      );
+      
+      // Navigate to the PDF URL
+      await pdfPage.goto(url, { 
+        waitUntil: 'networkidle',
+        timeout: 30000 
+      });
+      
+      // Wait for the response
+      const response = await responsePromise;
+      if (!response) {
+        throw new Error('Failed to get PDF response');
+      }
 
-    const buffer = await response.body();
-    const filename = `gazette_${Date.now()}.pdf`;
-    const filepath = join(process.cwd(), 'downloads', filename);
-    
-    await writeFile(filepath, buffer);
-    return filepath;
+      // Get the PDF buffer
+      const buffer = await response.body();
+      
+      // Generate filename and save
+      const filename = `jogszabaly_${Date.now()}.pdf`;
+      const filepath = join(process.cwd(), 'downloads', filename);
+      await writeFile(filepath, buffer);
+      
+      // Close the PDF page
+      await pdfPage.close();
+      
+      return filepath;
+    } catch (error) {
+      console.error('PDF download error:', error);
+      throw error;
+    }
   }
 
   private async extractTextFromPDF(filepath: string): Promise<string> {
-    const data = new Uint8Array(await readFile(filepath));
-    const doc = await pdfjsLib.getDocument({ data }).promise;
-    
-    let text = '';
-    for (let i = 1; i <= doc.numPages; i++) {
-      const page = await doc.getPage(i);
-      const content = await page.getTextContent();
-      text += content.items.map((item: any) => item.str).join(' ') + '\n';
+    try {
+      const data = new Uint8Array(await readFile(filepath));
+      const doc = await pdfjsLib.getDocument({ data }).promise;
+      
+      let text = '';
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item: any) => item.str).join(' ') + '\n';
+      }
+      
+      return text;
+    } catch (error) {
+      console.error('PDF text extraction error:', error);
+      throw error;
     }
-    
-    return text;
   }
 
   private async waitForContent(page: Page, selectors: string[]): Promise<string> {
@@ -106,7 +146,6 @@ export class HungarianGazetteCrawler extends BaseCrawler {
   }
 
   private async extractDocumentDetails(page: Page): Promise<{ title: string; date: string; number: string }> {
-    // Try multiple selectors for each field
     const titleSelectors = [
       'h1',
       '.title',
@@ -114,7 +153,8 @@ export class HungarianGazetteCrawler extends BaseCrawler {
       '.panel-title',
       '.panel-heading',
       '.document-header h1',
-      '.document-header .title'
+      '.document-header .title',
+      '.jogszabaly-cim'
     ];
 
     const dateSelectors = [
@@ -123,7 +163,8 @@ export class HungarianGazetteCrawler extends BaseCrawler {
       '.document-date',
       '.panel-body time',
       '.document-header time',
-      '.document-meta .date'
+      '.document-meta .date',
+      '.jogszabaly-datum'
     ];
 
     const numberSelectors = [
@@ -132,14 +173,14 @@ export class HungarianGazetteCrawler extends BaseCrawler {
       '.document-number',
       '.panel-body .text-muted',
       '.document-meta .number',
-      '.document-header .number'
+      '.document-header .number',
+      '.jogszabaly-szam'
     ];
 
     let title = '';
     let date = '';
     let number = '';
 
-    // Try each selector until we find a match
     for (const selector of titleSelectors) {
       try {
         const element = await page.$(selector);
@@ -199,33 +240,29 @@ export class HungarianGazetteCrawler extends BaseCrawler {
         throw new Error('Failed to initialize browser page');
       }
 
-      console.log('Navigating to main page...');
-      await this.page.goto(this.source.url, { waitUntil: 'networkidle' });
+      console.log('Navigating to NJT main page...');
+      await this.page.goto('https://njt.hu', { waitUntil: 'networkidle' });
       
-      // Wait for the filter form to be visible
-      await this.page.waitForSelector('#journal-filter-form', { timeout: 30000 });
+      // Wait for the search form to be visible
+      await this.page.waitForSelector('#search-form', { timeout: 30000 });
       
-      // Get current year and month
+      // Get current year
       const now = new Date();
       const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1; // JavaScript months are 0-based
 
-      console.log(`Selecting year: ${currentYear} and month: ${currentMonth}`);
+      console.log(`Searching for documents from year: ${currentYear}`);
       
-      // Select year
-      await this.page.locator('select[name="year"]').selectOption(currentYear.toString());
+      // Enter search criteria
+      await this.page.fill('#search-input', currentYear.toString());
       
-      // Select month
-      await this.page.locator('select[name="month"]').selectOption(currentMonth.toString());
-      
-      // Submit the form
+      // Submit the search
       await this.page.click('button[type="submit"]');
       
       // Wait for the results to load
-      await this.page.waitForSelector('.panel-body', { timeout: 30000 });
+      await this.page.waitForSelector('.search-results', { timeout: 30000 });
       
-      // Get all document links - only get the "megtekintes" (view) links
-      const documentLinks = await this.page.$$('a[href*="/megtekintes"]');
+      // Get all document links
+      const documentLinks = await this.page.$$('.search-results a[href*="/jogszabaly/"]');
       console.log(`Found ${documentLinks.length} document links`);
 
       for (const link of documentLinks) {
@@ -234,7 +271,7 @@ export class HungarianGazetteCrawler extends BaseCrawler {
           const href = await link.evaluate(el => el.getAttribute('href'));
           if (!href) continue;
 
-          const fullUrl = new URL(href, this.source.url).toString();
+          const fullUrl = new URL(href, 'https://njt.hu').toString();
           console.log(`Processing document at ${fullUrl}`);
           
           // Navigate to the document page with retry logic
@@ -277,14 +314,14 @@ export class HungarianGazetteCrawler extends BaseCrawler {
             throw new Error('Page is not initialized');
           }
           
-          const pdfLink = await this.page.$('a[href*="/letoltes"]');
+          const pdfLink = await this.page.$('a[href*="/pdf"]');
           let pdfContent = '';
           let pdfPath = '';
 
           if (pdfLink) {
             const pdfUrl = await pdfLink.evaluate(el => el.getAttribute('href'));
             if (pdfUrl) {
-              const fullPdfUrl = new URL(pdfUrl, this.source.url).toString();
+              const fullPdfUrl = new URL(pdfUrl, 'https://njt.hu').toString();
               console.log(`Downloading PDF from ${fullPdfUrl}`);
               
               try {
@@ -312,7 +349,12 @@ export class HungarianGazetteCrawler extends BaseCrawler {
               source: this.source.id
             });
 
-            await this.logCrawlResult(fullUrl, 'success');
+            try {
+              await this.logCrawlResult(fullUrl, 'success');
+            } catch (error) {
+              console.error('Failed to log crawl result:', error);
+            }
+            
             console.log(`Successfully processed document: ${title}`);
           } else {
             console.log(`Skipping document at ${fullUrl} - missing title or content`);
@@ -323,14 +365,22 @@ export class HungarianGazetteCrawler extends BaseCrawler {
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           errors.push(`Failed to process document at ${link}: ${errorMessage}`);
-          await this.logCrawlResult(link.toString(), 'error', errorMessage);
+          try {
+            await this.logCrawlResult(link.toString(), 'error', errorMessage);
+          } catch (logError) {
+            console.error('Failed to log error:', logError);
+          }
           console.error(`Error processing document: ${errorMessage}`);
         }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      errors.push(`Failed to crawl Hungarian Gazette: ${errorMessage}`);
-      await this.logCrawlResult(this.source.url, 'error', errorMessage);
+      errors.push(`Failed to crawl NJT: ${errorMessage}`);
+      try {
+        await this.logCrawlResult(this.source.url, 'error', errorMessage);
+      } catch (logError) {
+        console.error('Failed to log error:', logError);
+      }
       console.error(`Error crawling main page: ${errorMessage}`);
     } finally {
       await this.cleanup();
