@@ -28,9 +28,6 @@ jobs:
     - name: Lint
       run: npm run lint
 
-    - name: Build
-      run: npm run build
-
     - name: Cache build
       uses: actions/cache@v3
       with:
@@ -38,6 +35,15 @@ jobs:
         key: ${{ runner.os }}-build-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-build-
+
+    - name: Build
+      run: npm run build
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: build
+        path: dist
 
   deploy:
     needs: build
