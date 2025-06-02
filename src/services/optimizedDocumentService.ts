@@ -1,12 +1,12 @@
-
-import { chunkCache } from './chunkCache';
-import { BatchProcessor } from './batchProcessor';
-import { vectorSearchService } from './document/vectorSearchService';
-import { textSearchService } from './document/textSearchService';
-import { embeddingService } from './document/embeddingService';
-import { confidenceCalculator } from './document/confidenceCalculator';
-import { cacheService } from './document/cacheService';
-import type { SearchRequest, SearchResult } from './document/types';
+import { chunkCache } from './chunkCache.js';
+import { BatchProcessor } from './batchProcessor.js';
+import { vectorSearchService } from './document/vectorSearchService.js';
+import { textSearchService } from './document/textSearchService.js';
+import { embeddingService } from './document/embeddingService.js';
+import { confidenceCalculator } from './document/confidenceCalculator.js';
+import { cacheService } from './document/cacheService.js';
+import type { SearchRequest, SearchResult } from './document/types.js';
+import { supabase } from '@/integrations/supabase/client.js';
 
 class OptimizedDocumentService {
   private searchBatchProcessor: BatchProcessor<SearchRequest, SearchResult>;
@@ -60,7 +60,8 @@ class OptimizedDocumentService {
         }
 
         results.push({
-          ...searchResult,
+          chunks: searchResult.chunks,
+          totalResults: searchResult.totalResults,
           processingTime: performance.now() - startTime
         });
       } catch (error) {
@@ -104,6 +105,34 @@ class OptimizedDocumentService {
   clearCache(): void {
     cacheService.clearCache();
   }
+
+  async reindexAllDocuments(): Promise<void> {
+    console.log("Starting full codebase reindexing...");
+    // Clear cache first
+    this.clearCache();
+    // Fetch all document IDs from the documents table
+    const { data: documents, error } = await supabase.from('documents').select('id');
+    if (error) {
+      console.error("Failed to fetch documents:", error);
+      throw error;
+    }
+    // For each document, fetch its chunks and regenerate embeddings
+    for (const doc of documents) {
+      const { data: chunks, error: chunkError } = await supabase.from('document_chunks').select('id, chunk_text').eq('document_id', doc.id);
+      if (chunkError) {
+        console.error(`Failed to fetch chunks for document ${doc.id}:`, chunkError);
+        continue;
+      }
+      for (const chunk of chunks) {
+        const embedding = await this.generateEmbedding(chunk.chunk_text);
+        const { error: updateError } = await supabase.from('document_chunks').update({ embedding: JSON.stringify(embedding) }).eq('id', chunk.id);
+        if (updateError) {
+          console.error(`Failed to update embedding for chunk ${chunk.id}:`, updateError);
+          continue;
+        }
+      }
+    }
+  }
 }
 
-export const optimizedDocumentService = new OptimizedDocumentService();
+export default new OptimizedDocumentService();

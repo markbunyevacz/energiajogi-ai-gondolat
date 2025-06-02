@@ -502,6 +502,161 @@ export type Database = {
         };
         Relationships: [];
       };
+      legal_documents: {
+        Row: {
+          id: string
+          title: string
+          content: string
+          document_type: Database['public']['Enums']['legal_document_type']
+          source_url: string | null
+          publication_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          content: string
+          document_type: Database['public']['Enums']['legal_document_type']
+          source_url?: string | null
+          publication_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          content?: string
+          document_type?: Database['public']['Enums']['legal_document_type']
+          source_url?: string | null
+          publication_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      legal_changes: {
+        Row: {
+          id: string
+          document_id: string
+          change_type: Database['public']['Enums']['change_type']
+          description: string
+          impact_level: Database['public']['Enums']['impact_level']
+          detected_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          document_id: string
+          change_type: Database['public']['Enums']['change_type']
+          description: string
+          impact_level: Database['public']['Enums']['impact_level']
+          detected_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          document_id?: string
+          change_type?: Database['public']['Enums']['change_type']
+          description?: string
+          impact_level?: Database['public']['Enums']['impact_level']
+          detected_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_changes_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      contracts: {
+        Row: {
+          id: string
+          contract_name: string
+          content: string
+          contract_type: Database['public']['Enums']['contract_type']
+          risk_level: Database['public']['Enums']['impact_level']
+          last_reviewed: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          contract_name: string
+          content: string
+          contract_type: Database['public']['Enums']['contract_type']
+          risk_level: Database['public']['Enums']['impact_level']
+          last_reviewed?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          contract_name?: string
+          content?: string
+          contract_type?: Database['public']['Enums']['contract_type']
+          risk_level?: Database['public']['Enums']['impact_level']
+          last_reviewed?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contract_impacts: {
+        Row: {
+          id: string
+          contract_id: string
+          change_id: string
+          impact_description: string
+          action_required: string
+          priority_level: Database['public']['Enums']['priority_level']
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          contract_id: string
+          change_id: string
+          impact_description: string
+          action_required: string
+          priority_level: Database['public']['Enums']['priority_level']
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          contract_id?: string
+          change_id?: string
+          impact_description?: string
+          action_required?: string
+          priority_level?: Database['public']['Enums']['priority_level']
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_impacts_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_impacts_change_id_fkey"
+            columns: ["change_id"]
+            isOneToOne: false
+            referencedRelation: "legal_changes"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -625,6 +780,11 @@ export type Database = {
       user_role: 'jogász' | 'tulajdonos' | 'admin';
       legal_source_type: 'magyar_kozlony' | 'official_journal' | 'court_decision' | 'legislation' | 'other';
       crawler_status: 'pending' | 'running' | 'completed' | 'failed' | 'rate_limited';
+      legal_document_type: 'law' | 'regulation' | 'policy' | 'decision' | 'other'
+      change_type: 'amendment' | 'repeal' | 'new' | 'interpretation' | 'other'
+      impact_level: 'low' | 'medium' | 'high' | 'critical'
+      contract_type: 'employment' | 'service' | 'sales' | 'lease' | 'nda' | 'other'
+      priority_level: 'low' | 'medium' | 'high' | 'urgent'
     }
     CompositeTypes: {
       [_ in never]: never
