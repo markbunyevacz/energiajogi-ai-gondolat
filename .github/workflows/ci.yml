@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
@@ -28,8 +28,16 @@ jobs:
     - name: Lint
       run: npm run lint
 
+    - name: Cache node_modules
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
     - name: Cache build
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: dist
         key: ${{ runner.os }}-build-${{ github.sha }}
@@ -39,8 +47,11 @@ jobs:
     - name: Build
       run: npm run build
 
+    - name: Test
+      run: npm test
+
     - name: Upload build artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: build
         path: dist
@@ -51,16 +62,14 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-    - uses: actions/checkout@v3
-
     - name: Download build
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: build
         path: dist
 
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./dist 
