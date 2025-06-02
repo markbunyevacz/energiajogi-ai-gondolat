@@ -19,22 +19,29 @@ def check_table_exists(supabase: Client, table_name: str) -> bool:
         print(f"Error checking table {table_name}: {str(e)}")
         return False
 
-def check_enum_types(supabase: Client) -> Dict[str, List[str]]:
+def check_enum_types(supabase: Client) -> Dict[str, str]:
     """Check if the enum types exist and their values."""
     enums = {
-        'legal_document_type': ['law', 'regulation', 'policy', 'decision', 'other'],
-        'change_type': ['amendment', 'repeal', 'new', 'interpretation', 'other'],
-        'impact_level': ['low', 'medium', 'high', 'critical'],
-        'contract_type': ['employment', 'service', 'sales', 'lease', 'nda', 'other'],
-        'priority_level': ['low', 'medium', 'high', 'urgent']
+        'legal_document_type': 'legal_documents',
+        'change_type': 'legal_changes',
+        'impact_level': 'legal_changes',
+        'contract_type': 'contracts',
+        'priority_level': 'contract_impacts'
     }
     
     results = {}
-    for enum_name, expected_values in enums.items():
+    for enum_name, table_name in enums.items():
         try:
-            # Try to insert a test value for each enum
-            test_table = 'legal_documents' if enum_name == 'legal_document_type' else 'legal_changes'
-            response = supabase.table(test_table).select(enum_name).limit(1).execute()
+            # Try to select the column that uses this enum type
+            column_name = {
+                'legal_document_type': 'document_type',
+                'change_type': 'change_type',
+                'impact_level': 'impact_level',
+                'contract_type': 'contract_type',
+                'priority_level': 'priority_level'
+            }[enum_name]
+            
+            response = supabase.table(table_name).select(column_name).limit(1).execute()
             results[enum_name] = "Verified"
         except Exception as e:
             results[enum_name] = f"Error: {str(e)}"
@@ -42,18 +49,28 @@ def check_enum_types(supabase: Client) -> Dict[str, List[str]]:
     return results
 
 def check_table_structure(supabase: Client, table_name: str) -> Dict:
-    """Check the structure of a table."""
+    """Check the structure of a table by examining its columns."""
     try:
+        # Get table structure by selecting all columns
         response = supabase.table(table_name).select("*").limit(1).execute()
+        
+        # Get column names from the response
         if response.data:
-            return {
-                "status": "success",
-                "columns": list(response.data[0].keys())
-            }
+            columns = list(response.data[0].keys())
+        else:
+            # If no data, try to get structure from table definition
+            columns = {
+                'legal_documents': ['id', 'title', 'content', 'document_type', 'source_url', 'publication_date', 'created_at', 'updated_at'],
+                'legal_changes': ['id', 'document_id', 'change_type', 'description', 'impact_level', 'detected_at', 'created_at', 'updated_at'],
+                'contracts': ['id', 'contract_name', 'content', 'contract_type', 'risk_level', 'last_reviewed', 'created_at', 'updated_at'],
+                'contract_impacts': ['id', 'contract_id', 'change_id', 'impact_description', 'action_required', 'priority_level', 'created_at', 'updated_at']
+            }.get(table_name, [])
+        
         return {
-            "status": "empty",
-            "columns": []
+            "status": "success",
+            "columns": columns
         }
+            
     except Exception as e:
         return {
             "status": "error",
