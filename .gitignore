@@ -49,4 +49,7 @@ out
 # Misc
 .cache
 .temp
-.tmp 
+.tmp
+
+# Supabase config
+supabase/functions/**/config.toml 
