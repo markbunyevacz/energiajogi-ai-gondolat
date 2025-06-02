@@ -1,4 +1,5 @@
 import { Anthropic } from '@anthropic-ai/sdk';
+import { getMetadataExtractionPrompt } from './promptTemplates';
 
 export interface DocumentMetadata {
   documentType: 'law' | 'regulation' | 'decision' | 'other';
@@ -7,6 +8,8 @@ export interface DocumentMetadata {
   legalAreas: string[];
   title: string;
   source: string;
+  error?: string;
+  raw?: string;
 }
 
 export interface ProcessedDocument {
@@ -26,24 +29,7 @@ export class ClaudeService {
   }
 
   private async processChunk(chunk: string, context: string): Promise<DocumentMetadata> {
-    const prompt = `
-    Analyze the following legal document chunk and extract metadata:
-    
-    Context: ${context}
-    
-    Document chunk:
-    ${chunk}
-    
-    Extract and return the following information in JSON format:
-    - documentType: The type of legal document (law, regulation, decision, other)
-    - date: The date of the document
-    - references: Array of legal references mentioned
-    - legalAreas: Array of affected legal areas
-    - title: The title of the document
-    - source: The source of the document
-    
-    Return only the JSON object, no additional text.
-    `;
+    const prompt = getMetadataExtractionPrompt(chunk, context);
 
     const response = await this.anthropic.messages.create({
       model: 'claude-3-opus-20240229',
@@ -51,7 +37,7 @@ export class ClaudeService {
       messages: [{ role: 'user', content: prompt }],
     });
 
-    return JSON.parse(response.content[0].text);
+    return this.safeParseJson(response.content[0].text);
   }
 
   private splitIntoChunks(text: string): string[] {
@@ -108,18 +94,27 @@ export class ClaudeService {
   }
 
   public async processBatch(documents: string[]): Promise<ProcessedDocument[]> {
-    const results: ProcessedDocument[] = [];
-    
-    for (const doc of documents) {
-      try {
-        const processed = await this.processDocument(doc);
-        results.push(processed);
-      } catch (error) {
-        console.error('Error processing document:', error);
-        // Continue with next document
-      }
-    }
+    return Promise.all(documents.map(doc => this.processDocument(doc)));
+  }
 
-    return results;
+  private safeParseJson(text: string): DocumentMetadata {
+    try {
+      const match = text.match(/{[\s\S]*}/);
+      if (match) {
+        return JSON.parse(match[0]);
+      }
+      throw new Error('No JSON found in response');
+    } catch (e) {
+      return {
+        documentType: 'other',
+        date: '',
+        references: [],
+        legalAreas: [],
+        title: '',
+        source: '',
+        error: 'Parsing error: ' + (e as Error).message,
+        raw: text
+      } as any;
+    }
   }
 } 
