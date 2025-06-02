@@ -2,6 +2,6 @@
 verify_jwt = true
  
 [functions.analyze-contract.env]
-OPENAI_API_KEY = ""
-SUPABASE_URL = ""
-SUPABASE_SERVICE_ROLE_KEY = "" 
+OPENAI_API_KEY = "4cb6da1f7f4f4b84b650babde4ed8ebf1fd25c8a87def51dafeb42237fcdcd85"
+SUPABASE_URL = "488b00a139c6c0681eae50784ecfd55fadccecd7316e12b9691e29aa719ccfaf"
+SUPABASE_SERVICE_ROLE_KEY = "f9e7fa5e619e221566d0987773e365dcca55c6334b51ee7f59e0630ed1c7d9e1" 
