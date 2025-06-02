@@ -83,6 +83,7 @@ Please provide a comprehensive answer that:
       .single()
 
     if (sessionError) {
+      console.error('Database error:', sessionError)
       throw sessionError
     }
 
