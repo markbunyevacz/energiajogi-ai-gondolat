@@ -1,45 +1,68 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "sonner";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "@/hooks/useAuth";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-
-import Auth from "./pages/Auth";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import ContractAnalysisPage from "./pages/ContractAnalysis";
-import Testing from "./pages/Testing";
-
-const queryClient = new QueryClient();
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './lib/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { Login } from './pages/Login';
+import { AdminDashboard } from './components/AdminDashboard';
 
 function App() {
-  console.log('App: Starting application');
-  
+  const { user, signIn, signOut, hasRole } = useAuth();
+
+  if (hasRole('admin')) {
+    // Show admin features
+  }
+
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/" element={<Index />} />
-              <Route 
-                path="/contract-analysis" 
-                element={
-                  <ErrorBoundary>
-                    <ContractAnalysisPage />
-                  </ErrorBoundary>
-                } 
-              />
-              <Route path="/testing" element={<Testing />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <Toaster />
-          </BrowserRouter>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <Router>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          
+          {/* Protected routes */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/legal"
+            element={
+              <ProtectedRoute requiredRole="legal_manager">
+                <div>Legal Manager Dashboard</div>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/analyst"
+            element={
+              <ProtectedRoute requiredRole="analyst">
+                <div>Analyst Dashboard</div>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/viewer"
+            element={
+              <ProtectedRoute requiredRole="viewer">
+                <div>Viewer Dashboard</div>
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Redirect root to login */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          
+          {/* Catch all route */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </AuthProvider>
+    </Router>
   );
 }
 
