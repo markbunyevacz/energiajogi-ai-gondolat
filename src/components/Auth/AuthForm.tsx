@@ -1,34 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function AuthForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
+  useEffect(() => {
+    // Lovable.dev iframe betöltése
+    const script = document.createElement('script');
+    script.src = 'https://lovable.dev/embed/auth.js';
+    script.async = true;
+    script.onload = () => {
       setLoading(false);
-    }
-  };
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   return (
     <Card className="w-[350px] mx-auto mt-8">
@@ -36,41 +26,15 @@ export function AuthForm() {
         <CardTitle>Bejelentkezés</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSignIn} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="space-y-2">
-            <Input
-              type="email"
-              placeholder="Email cím"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Input
-              type="password"
-              placeholder="Jelszó"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={loading}
-          >
-            {loading ? 'Bejelentkezés...' : 'Bejelentkezés'}
-          </Button>
-        </form>
+        {loading ? (
+          <div className="text-center">Betöltés...</div>
+        ) : (
+          <div 
+            id="lovable-auth-container"
+            data-project-id="43008c28-d425-4379-852f-8aa5277d7415"
+            data-redirect-url={window.location.origin}
+          />
+        )}
       </CardContent>
     </Card>
   );
