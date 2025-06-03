@@ -507,9 +507,13 @@ export type Database = {
           id: string
           title: string
           content: string
-          document_type: 'law' | 'regulation' | 'policy' | 'decision' | 'other'
+          document_type: Database['public']['Enums']['document_type']
           source_url: string | null
           publication_date: string | null
+          domain_id: string | null
+          hierarchy_level: Database['public']['Enums']['legal_hierarchy_level'] | null
+          cross_references: Json | null
+          metadata: Json | null
           created_at: string
           updated_at: string
         }
@@ -517,9 +521,13 @@ export type Database = {
           id?: string
           title: string
           content: string
-          document_type: 'law' | 'regulation' | 'policy' | 'decision' | 'other'
+          document_type: Database['public']['Enums']['document_type']
           source_url?: string | null
           publication_date?: string | null
+          domain_id?: string | null
+          hierarchy_level?: Database['public']['Enums']['legal_hierarchy_level'] | null
+          cross_references?: Json | null
+          metadata?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -527,21 +535,32 @@ export type Database = {
           id?: string
           title?: string
           content?: string
-          document_type?: 'law' | 'regulation' | 'policy' | 'decision' | 'other'
+          document_type?: Database['public']['Enums']['document_type']
           source_url?: string | null
           publication_date?: string | null
+          domain_id?: string | null
+          hierarchy_level?: Database['public']['Enums']['legal_hierarchy_level'] | null
+          cross_references?: Json | null
+          metadata?: Json | null
           created_at?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "legal_documents_domain_id_fkey"
+            columns: ["domain_id"]
+            referencedRelation: "legal_domains"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       legal_changes: {
         Row: {
           id: string
           document_id: string
-          change_type: 'amendment' | 'repeal' | 'new' | 'interpretation' | 'other'
+          change_type: Database['public']['Enums']['change_type']
           description: string
-          impact_level: 'low' | 'medium' | 'high' | 'critical'
+          impact_level: Database['public']['Enums']['impact_level']
           detected_at: string
           created_at: string
           updated_at: string
@@ -549,9 +568,9 @@ export type Database = {
         Insert: {
           id?: string
           document_id: string
-          change_type: 'amendment' | 'repeal' | 'new' | 'interpretation' | 'other'
+          change_type: Database['public']['Enums']['change_type']
           description: string
-          impact_level: 'low' | 'medium' | 'high' | 'critical'
+          impact_level: Database['public']['Enums']['impact_level']
           detected_at?: string
           created_at?: string
           updated_at?: string
@@ -559,9 +578,9 @@ export type Database = {
         Update: {
           id?: string
           document_id?: string
-          change_type?: 'amendment' | 'repeal' | 'new' | 'interpretation' | 'other'
+          change_type?: Database['public']['Enums']['change_type']
           description?: string
-          impact_level?: 'low' | 'medium' | 'high' | 'critical'
+          impact_level?: Database['public']['Enums']['impact_level']
           detected_at?: string
           created_at?: string
           updated_at?: string
@@ -580,8 +599,8 @@ export type Database = {
           id: string
           contract_name: string
           content: string
-          contract_type: 'employment' | 'service' | 'sales' | 'lease' | 'nda' | 'other'
-          risk_level: 'low' | 'medium' | 'high' | 'critical'
+          contract_type: Database['public']['Enums']['contract_type']
+          risk_level: Database['public']['Enums']['risk_level']
           last_reviewed: string | null
           created_at: string
           updated_at: string
@@ -590,8 +609,8 @@ export type Database = {
           id?: string
           contract_name: string
           content: string
-          contract_type: 'employment' | 'service' | 'sales' | 'lease' | 'nda' | 'other'
-          risk_level: 'low' | 'medium' | 'high' | 'critical'
+          contract_type: Database['public']['Enums']['contract_type']
+          risk_level: Database['public']['Enums']['risk_level']
           last_reviewed?: string | null
           created_at?: string
           updated_at?: string
@@ -600,8 +619,8 @@ export type Database = {
           id?: string
           contract_name?: string
           content?: string
-          contract_type?: 'employment' | 'service' | 'sales' | 'lease' | 'nda' | 'other'
-          risk_level?: 'low' | 'medium' | 'high' | 'critical'
+          contract_type?: Database['public']['Enums']['contract_type']
+          risk_level?: Database['public']['Enums']['risk_level']
           last_reviewed?: string | null
           created_at?: string
           updated_at?: string
@@ -615,7 +634,7 @@ export type Database = {
           change_id: string
           impact_description: string
           action_required: string
-          priority_level: 'low' | 'medium' | 'high' | 'urgent'
+          priority_level: Database['public']['Enums']['priority_level']
           created_at: string
           updated_at: string
         }
@@ -625,7 +644,7 @@ export type Database = {
           change_id: string
           impact_description: string
           action_required: string
-          priority_level: 'low' | 'medium' | 'high' | 'urgent'
+          priority_level: Database['public']['Enums']['priority_level']
           created_at?: string
           updated_at?: string
         }
@@ -635,7 +654,7 @@ export type Database = {
           change_id?: string
           impact_description?: string
           action_required?: string
-          priority_level?: 'low' | 'medium' | 'high' | 'urgent'
+          priority_level?: Database['public']['Enums']['priority_level']
           created_at?: string
           updated_at?: string
         }
@@ -653,6 +672,119 @@ export type Database = {
             referencedColumns: ["id"]
           }
         ]
+      }
+      legal_domains: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          description: string | null
+          parent_domain_id: string | null
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          description?: string | null
+          parent_domain_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          name?: string
+          description?: string | null
+          parent_domain_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_domains_parent_domain_id_fkey"
+            columns: ["parent_domain_id"]
+            referencedRelation: "legal_domains"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      legal_hierarchy: {
+        Row: {
+          id: string
+          parent_document_id: string
+          child_document_id: string
+          relationship_type: string
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          parent_document_id: string
+          child_document_id: string
+          relationship_type: string
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          parent_document_id?: string
+          child_document_id?: string
+          relationship_type?: string
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_hierarchy_parent_document_id_fkey"
+            columns: ["parent_document_id"]
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_hierarchy_child_document_id_fkey"
+            columns: ["child_document_id"]
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      queue_messages: {
+        Row: {
+          id: string
+          type: string
+          payload: Json
+          status: string
+          error: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          type: string
+          payload: Json
+          status?: string
+          error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          type?: string
+          payload?: Json
+          status?: string
+          error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -771,17 +903,17 @@ export type Database = {
       }
     }
     Enums: {
-      document_type: 'szerződés' | 'rendelet' | 'szabályzat' | 'törvény' | 'határozat' | 'egyéb';
-      risk_level: 'low' | 'medium' | 'high';
-      risk_type: 'legal' | 'financial' | 'operational' | 'compliance' | 'security' | 'privacy' | 'intellectual_property' | 'other';
-      user_role: 'jogász' | 'tulajdonos' | 'admin';
-      legal_source_type: 'magyar_kozlony' | 'official_journal' | 'court_decision' | 'legislation' | 'other';
-      crawler_status: 'pending' | 'running' | 'completed' | 'failed' | 'rate_limited';
-      legal_document_type: 'law' | 'regulation' | 'policy' | 'decision' | 'other'
-      change_type: 'amendment' | 'repeal' | 'new' | 'interpretation' | 'other'
+      document_type: 'law' | 'regulation' | 'policy' | 'decision' | 'other'
+      risk_level: 'low' | 'medium' | 'high'
+      risk_type: 'legal' | 'financial' | 'operational' | 'compliance' | 'security' | 'privacy' | 'intellectual_property' | 'other'
+      user_role: 'admin' | 'jogász' | 'tulajdonos'
+      legal_source_type: 'magyar_kozlony' | 'official_journal' | 'court_decision' | 'legislation' | 'other'
+      crawler_status: 'pending' | 'running' | 'completed' | 'failed' | 'rate_limited'
+      change_type: 'amendment' | 'repeal' | 'new_legislation' | 'interpretation' | 'other'
       impact_level: 'low' | 'medium' | 'high' | 'critical'
-      contract_type: 'employment' | 'service' | 'sales' | 'lease' | 'nda' | 'other'
+      contract_type: 'service' | 'employment' | 'nda' | 'partnership' | 'other'
       priority_level: 'low' | 'medium' | 'high' | 'urgent'
+      legal_hierarchy_level: 'constitutional' | 'statutory' | 'regulatory' | 'administrative' | 'judicial' | 'other'
     }
     CompositeTypes: {
       [_ in never]: never
