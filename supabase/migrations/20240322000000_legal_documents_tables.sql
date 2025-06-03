@@ -8,11 +8,16 @@ END;
 $$ language 'plpgsql';
 
 -- Create enum types
-CREATE TYPE user_role AS ENUM (
-  'admin',
-  'jogász',
-  'tulajdonos'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+        CREATE TYPE user_role AS ENUM (
+            'admin',
+            'jogász',
+            'tulajdonos'
+        );
+    END IF;
+END$$;
 
 -- Create profiles table
 CREATE TABLE IF NOT EXISTS profiles (

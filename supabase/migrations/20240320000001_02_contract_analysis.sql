@@ -12,7 +12,12 @@ CREATE TYPE risk_type AS ENUM (
 );
 
 -- Create user role enum
-CREATE TYPE user_role AS ENUM ('admin', 'jogász', 'analyst', 'viewer');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+        CREATE TYPE user_role AS ENUM ('admin', 'jogász', 'analyst', 'viewer');
+    END IF;
+END$$;
 
 -- Create profiles table
 CREATE TABLE IF NOT EXISTS profiles (
