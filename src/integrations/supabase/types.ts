@@ -654,6 +654,45 @@ export type Database = {
           }
         ]
       }
+      legal_domains: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          description: string
+          active: boolean
+          document_types: string[]
+          processing_rules: Json
+          compliance_requirements: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          description: string
+          active?: boolean
+          document_types?: string[]
+          processing_rules?: Json
+          compliance_requirements?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          name?: string
+          description?: string
+          active?: boolean
+          document_types?: string[]
+          processing_rules?: Json
+          compliance_requirements?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
