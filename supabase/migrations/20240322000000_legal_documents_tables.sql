@@ -28,13 +28,18 @@ CREATE TABLE IF NOT EXISTS profiles (
 );
 
 -- Create document_type enum
-CREATE TYPE document_type AS ENUM (
-  'law',
-  'regulation',
-  'policy',
-  'decision',
-  'other'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'document_type') THEN
+        CREATE TYPE document_type AS ENUM (
+            'law',
+            'regulation',
+            'policy',
+            'decision',
+            'other'
+        );
+    END IF;
+END$$;
 
 DO $$
 BEGIN
@@ -49,27 +54,42 @@ BEGIN
     END IF;
 END$$;
 
-CREATE TYPE impact_level AS ENUM (
-  'low',
-  'medium',
-  'high',
-  'critical'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'impact_level') THEN
+        CREATE TYPE impact_level AS ENUM (
+            'low',
+            'medium',
+            'high',
+            'critical'
+        );
+    END IF;
+END$$;
 
-CREATE TYPE contract_type AS ENUM (
-  'service',
-  'employment',
-  'nda',
-  'partnership',
-  'other'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'contract_type') THEN
+        CREATE TYPE contract_type AS ENUM (
+            'service',
+            'employment',
+            'nda',
+            'partnership',
+            'other'
+        );
+    END IF;
+END$$;
 
-CREATE TYPE priority_level AS ENUM (
-  'low',
-  'medium',
-  'high',
-  'urgent'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'priority_level') THEN
+        CREATE TYPE priority_level AS ENUM (
+            'low',
+            'medium',
+            'high',
+            'urgent'
+        );
+    END IF;
+END$$;
 
 -- Create legal_documents table
 CREATE TABLE IF NOT EXISTS legal_documents (
@@ -188,27 +208,67 @@ CREATE POLICY "Only admins can modify contract impacts"
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
 
 -- Create triggers for updated_at
-CREATE TRIGGER update_profiles_updated_at
-  BEFORE UPDATE ON profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger 
+        WHERE tgname = 'update_profiles_updated_at'
+    ) THEN
+        CREATE TRIGGER update_profiles_updated_at
+            BEFORE UPDATE ON profiles
+            FOR EACH ROW
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END$$;
 
-CREATE TRIGGER update_legal_documents_updated_at
-  BEFORE UPDATE ON legal_documents
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger 
+        WHERE tgname = 'update_legal_documents_updated_at'
+    ) THEN
+        CREATE TRIGGER update_legal_documents_updated_at
+            BEFORE UPDATE ON legal_documents
+            FOR EACH ROW
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END$$;
 
-CREATE TRIGGER update_legal_changes_updated_at
-  BEFORE UPDATE ON legal_changes
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger 
+        WHERE tgname = 'update_legal_changes_updated_at'
+    ) THEN
+        CREATE TRIGGER update_legal_changes_updated_at
+            BEFORE UPDATE ON legal_changes
+            FOR EACH ROW
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END$$;
 
-CREATE TRIGGER update_contracts_updated_at
-  BEFORE UPDATE ON contracts
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger 
+        WHERE tgname = 'update_contracts_updated_at'
+    ) THEN
+        CREATE TRIGGER update_contracts_updated_at
+            BEFORE UPDATE ON contracts
+            FOR EACH ROW
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END$$;
 
-CREATE TRIGGER update_contract_impacts_updated_at
-  BEFORE UPDATE ON contract_impacts
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column(); 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger 
+        WHERE tgname = 'update_contract_impacts_updated_at'
+    ) THEN
+        CREATE TRIGGER update_contract_impacts_updated_at
+            BEFORE UPDATE ON contract_impacts
+            FOR EACH ROW
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END$$; 

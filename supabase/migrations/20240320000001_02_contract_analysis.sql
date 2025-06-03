@@ -1,15 +1,26 @@
 -- Create enum types for risk levels and risk types
-CREATE TYPE risk_level AS ENUM ('low', 'medium', 'high');
-CREATE TYPE risk_type AS ENUM (
-  'legal',
-  'financial',
-  'operational',
-  'compliance',
-  'security',
-  'privacy',
-  'intellectual_property',
-  'other'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'risk_level') THEN
+        CREATE TYPE risk_level AS ENUM ('low', 'medium', 'high');
+    END IF;
+END$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'risk_type') THEN
+        CREATE TYPE risk_type AS ENUM (
+            'legal',
+            'financial',
+            'operational',
+            'compliance',
+            'security',
+            'privacy',
+            'intellectual_property',
+            'other'
+        );
+    END IF;
+END$$;
 
 -- Create user role enum
 DO $$

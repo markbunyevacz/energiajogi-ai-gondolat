@@ -24,16 +24,17 @@ BEGIN
     END IF;
 END$$;
 
-DO $$ BEGIN
-    CREATE TYPE impact_level AS ENUM (
-        'low',
-        'medium',
-        'high',
-        'critical'
-    );
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'impact_level') THEN
+        CREATE TYPE impact_level AS ENUM (
+            'low',
+            'medium',
+            'high',
+            'critical'
+        );
+    END IF;
+END$$;
 
 DO $$ BEGIN
     CREATE TYPE contract_type AS ENUM (

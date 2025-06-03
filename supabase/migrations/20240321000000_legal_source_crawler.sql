@@ -1,20 +1,30 @@
 -- Create enum for source types
-CREATE TYPE legal_source_type AS ENUM (
-  'magyar_kozlony',
-  'official_journal',
-  'court_decision',
-  'legislation',
-  'other'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'legal_source_type') THEN
+        CREATE TYPE legal_source_type AS ENUM (
+            'magyar_kozlony',
+            'official_journal',
+            'court_decision',
+            'legislation',
+            'other'
+        );
+    END IF;
+END$$;
 
 -- Create enum for crawler status
-CREATE TYPE crawler_status AS ENUM (
-  'pending',
-  'running',
-  'completed',
-  'failed',
-  'rate_limited'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'crawler_status') THEN
+        CREATE TYPE crawler_status AS ENUM (
+            'pending',
+            'running',
+            'completed',
+            'failed',
+            'rate_limited'
+        );
+    END IF;
+END$$;
 
 -- Create legal_sources table
 CREATE TABLE IF NOT EXISTS legal_sources (
@@ -92,17 +102,41 @@ CREATE POLICY "Only admins can view and modify crawler proxies"
   USING (auth.uid() IN (SELECT id FROM profiles WHERE role = 'admin'));
 
 -- Create triggers for updated_at
-CREATE TRIGGER update_legal_sources_updated_at
-  BEFORE UPDATE ON legal_sources
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger 
+        WHERE tgname = 'update_legal_sources_updated_at'
+    ) THEN
+        CREATE TRIGGER update_legal_sources_updated_at
+            BEFORE UPDATE ON legal_sources
+            FOR EACH ROW
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END$$;
 
-CREATE TRIGGER update_crawler_jobs_updated_at
-  BEFORE UPDATE ON crawler_jobs
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger 
+        WHERE tgname = 'update_crawler_jobs_updated_at'
+    ) THEN
+        CREATE TRIGGER update_crawler_jobs_updated_at
+            BEFORE UPDATE ON crawler_jobs
+            FOR EACH ROW
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END$$;
 
-CREATE TRIGGER update_crawler_proxies_updated_at
-  BEFORE UPDATE ON crawler_proxies
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column(); 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger 
+        WHERE tgname = 'update_crawler_proxies_updated_at'
+    ) THEN
+        CREATE TRIGGER update_crawler_proxies_updated_at
+            BEFORE UPDATE ON crawler_proxies
+            FOR EACH ROW
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END$$; 

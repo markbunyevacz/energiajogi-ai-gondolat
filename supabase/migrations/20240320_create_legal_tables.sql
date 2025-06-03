@@ -20,12 +20,17 @@ BEGIN
     END IF;
 END$$;
 
-CREATE TYPE impact_level AS ENUM (
-    'low',
-    'medium',
-    'high',
-    'critical'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'impact_level') THEN
+        CREATE TYPE impact_level AS ENUM (
+            'low',
+            'medium',
+            'high',
+            'critical'
+        );
+    END IF;
+END$$;
 
 CREATE TYPE contract_type AS ENUM (
     'employment',
