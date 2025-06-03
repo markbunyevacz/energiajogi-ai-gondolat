@@ -6,6 +6,7 @@ export class DomainRegistry {
   private static instance: DomainRegistry;
   private domainService: DomainService;
   private cache: NodeCache;
+  private domains: Map<string, LegalDomain> = new Map();
 
   private constructor() {
     this.domainService = DomainService.getInstance();
@@ -24,6 +25,7 @@ export class DomainRegistry {
 
   async registerDomain(domain: Omit<LegalDomain, 'id' | 'metadata'>): Promise<LegalDomain> {
     const registered = await this.domainService.registerDomain(domain);
+    this.domains.set(domain.code, registered);
     this.cache.set(domain.code, registered);
     return registered;
   }
@@ -34,7 +36,7 @@ export class DomainRegistry {
       return cached;
     }
 
-    const domain = await this.domainService.getDomain(code);
+    const domain = await this.domains.get(code) || await this.domainService.getDomain(code);
     if (domain) {
       this.cache.set(code, domain);
     }
@@ -44,6 +46,7 @@ export class DomainRegistry {
   async listDomains(): Promise<LegalDomain[]> {
     const domains = await this.domainService.listDomains();
     domains.forEach(domain => {
+      this.domains.set(domain.code, domain);
       this.cache.set(domain.code, domain);
     });
     return domains;
@@ -51,8 +54,14 @@ export class DomainRegistry {
 
   async updateDomain(code: string, updates: Partial<LegalDomain>): Promise<LegalDomain> {
     const updated = await this.domainService.updateDomain(code, updates);
+    this.domains.set(code, updated);
     this.cache.set(code, updated);
     return updated;
+  }
+
+  async unregisterDomain(code: string): Promise<void> {
+    this.domains.delete(code);
+    this.cache.del(code);
   }
 
   private validateDomain(domain: Omit<LegalDomain, 'id' | 'metadata'>): void {

@@ -33,13 +33,7 @@ export interface LegalDomain {
 }
 
 // Extend existing DocumentType enum
-export type DocumentType = 
-  | 'law'
-  | 'regulation'
-  | 'policy'
-  | 'decision'
-  | 'other'
-  | string; // Allow domain-specific types
+export type DocumentType = 'law' | 'regulation' | 'policy' | 'decision' | 'other';
 
 export interface LegalDocument {
   id: string;
