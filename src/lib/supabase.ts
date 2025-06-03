@@ -16,6 +16,7 @@ export interface User {
   id: string;
   email?: string;
   role?: UserRole;
+  email_confirmed_at?: string;
 }
 
 export const getUserRole = async (userId: string): Promise<UserRole | null> => {
@@ -31,4 +32,36 @@ export const getUserRole = async (userId: string): Promise<UserRole | null> => {
   }
 
   return data?.role || null;
+};
+
+export const resetPassword = async (email: string) => {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+  if (error) throw error;
+};
+
+export const updatePassword = async (newPassword: string) => {
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+  if (error) throw error;
+};
+
+export const sendEmailVerification = async (email: string) => {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
+  });
+  if (error) throw error;
+};
+
+export const verifyEmail = async (token: string) => {
+  const { error } = await supabase.auth.verifyOtp({
+    token_hash: token,
+    type: 'email',
+  });
+  if (error) throw error;
 }; 

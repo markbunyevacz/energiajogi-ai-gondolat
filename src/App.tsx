@@ -1,29 +1,27 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './lib/AuthContext';
+import { AuthProvider } from './lib/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
-import { AdminDashboard } from './components/AdminDashboard';
+import { ResetPasswordRequest } from './pages/ResetPasswordRequest';
+import { ResetPassword } from './pages/ResetPassword';
 
 function App() {
-  const { user, signIn, signOut, hasRole } = useAuth();
-
-  if (hasRole('admin')) {
-    // Show admin features
-  }
-
   return (
     <Router>
       <AuthProvider>
         <Routes>
+          {/* Auth routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/reset-password-request" element={<ResetPasswordRequest />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           
           {/* Protected routes */}
           <Route
             path="/admin"
             element={
               <ProtectedRoute requiredRole="admin">
-                <AdminDashboard />
+                <div>Admin Dashboard</div>
               </ProtectedRoute>
             }
           />
