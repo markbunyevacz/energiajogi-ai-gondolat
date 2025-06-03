@@ -11,17 +11,18 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
-DO $$ BEGIN
-    CREATE TYPE change_type AS ENUM (
-        'amendment',
-        'repeal',
-        'new',
-        'interpretation',
-        'other'
-    );
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'change_type') THEN
+        CREATE TYPE change_type AS ENUM (
+            'amendment',
+            'repeal',
+            'new',
+            'interpretation',
+            'other'
+        );
+    END IF;
+END$$;
 
 DO $$ BEGIN
     CREATE TYPE impact_level AS ENUM (

@@ -36,13 +36,18 @@ CREATE TYPE document_type AS ENUM (
   'other'
 );
 
-CREATE TYPE change_type AS ENUM (
-  'amendment',
-  'repeal',
-  'new_legislation',
-  'interpretation',
-  'other'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'change_type') THEN
+        CREATE TYPE change_type AS ENUM (
+            'amendment',
+            'repeal',
+            'new_legislation',
+            'interpretation',
+            'other'
+        );
+    END IF;
+END$$;
 
 CREATE TYPE impact_level AS ENUM (
   'low',
