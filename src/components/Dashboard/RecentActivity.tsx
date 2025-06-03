@@ -135,6 +135,9 @@ export function RecentActivity({ role }: RecentActivityProps) {
   const renderActivity = useCallback((activity: ActivityItem) => {
     const Icon = getActivityIcon(activity.type);
     
+    // TODO: lovable.dev - Priority Alerts Panel Widget integráció helye (alert típusú aktivitásnál)
+    // Ha activity.type === 'alert', ide lehet integrálni a Priority Alerts Panel widgetet
+
     return (
       <div
         key={activity.id}

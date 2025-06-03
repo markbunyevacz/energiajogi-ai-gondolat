@@ -25,7 +25,7 @@ export function ITDashboard({ role }: ITDashboardProps) {
         </Badge>
       </div>
 
-      {/* Performance Overview Cards */}
+      {/* TODO: lovable.dev - System Status Widget integráció helye */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -67,7 +67,7 @@ export function ITDashboard({ role }: ITDashboardProps) {
         </Card>
       </div>
 
-      {/* Detailed Performance Metrics */}
+      {/* TODO: lovable.dev - Performance Metrics Charts Widget integráció helye */}
       <Card>
         <CardHeader>
           <CardTitle>Részletes Teljesítmény Metrikák</CardTitle>

@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Brain, ArrowRight, Eye, AlertCircle, RefreshCw } from 'lucide-react';
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 type DocumentType = 'szerződés' | 'rendelet' | 'szabályzat' | 'törvény' | 'határozat' | 'egyéb';
 
@@ -97,6 +100,38 @@ export function StoredDocumentsList({
     }
   };
 
+  // EXCEL EXPORT
+  const handleExportExcel = () => {
+    const exportData = documents.map(doc => ({
+      Cím: doc.title,
+      Típus: doc.type,
+      Méret: formatFileSize(doc.file_size),
+      Feltöltés: new Date(doc.upload_date).toLocaleDateString('hu-HU'),
+      Állapot: doc.analysis_status,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Dokumentumok");
+    XLSX.writeFile(workbook, "dokumentumok.xlsx");
+  };
+
+  // PDF EXPORT
+  const handleExportPDF = () => {
+    const docPDF = new jsPDF();
+    const exportData = documents.map(doc => [
+      doc.title,
+      doc.type,
+      formatFileSize(doc.file_size),
+      new Date(doc.upload_date).toLocaleDateString('hu-HU'),
+      doc.analysis_status,
+    ]);
+    docPDF.autoTable({
+      head: [["Cím", "Típus", "Méret", "Feltöltés", "Állapot"]],
+      body: exportData,
+    });
+    docPDF.save("dokumentumok.pdf");
+  };
+
   if (documents.length === 0) return null;
 
   return (
@@ -104,14 +139,23 @@ export function StoredDocumentsList({
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Tárolt Dokumentumok ({documents.length})</CardTitle>
-          <Button 
-            onClick={onNavigateToAnalysis}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
-          >
-            <Brain className="w-4 h-4 mr-1" />
-            Szerződéselemzés oldal
-            <ArrowRight className="w-4 h-4 ml-1" />
-          </Button>
+          <div className="flex gap-2">
+            {/* EXPORT GOMBOK */}
+            <Button variant="outline" onClick={handleExportExcel}>
+              Exportálás Excelbe
+            </Button>
+            <Button variant="outline" onClick={handleExportPDF}>
+              Exportálás PDF-be
+            </Button>
+            <Button 
+              onClick={onNavigateToAnalysis}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Brain className="w-4 h-4 mr-1" />
+              Szerződéselemzés oldal
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

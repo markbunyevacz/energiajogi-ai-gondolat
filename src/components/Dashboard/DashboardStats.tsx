@@ -5,11 +5,14 @@ import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, FileText, MessageSquare, Shield, DollarSign, Activity, Users } from 'lucide-react';
 import { UserRole, DashboardStats } from '@/types';
 import { useRealTimeAnalytics } from '@/hooks/useRealTimeAnalytics';
+import { Button } from "@/components/ui/button";
 
 interface DashboardStatsProps {
   role: UserRole;
   stats: DashboardStats;
 }
+
+// TODO: lovable.dev - DashboardStats (összesített metrikák) Widget integráció helye
 
 export function DashboardStatsComponent({ role, stats }: DashboardStatsProps) {
   const { data: analyticsData } = useRealTimeAnalytics(24);
@@ -183,6 +186,8 @@ export function DashboardStatsComponent({ role, stats }: DashboardStatsProps) {
           </Card>
         );
       })}
+      <Button onClick={handleExportExcel}>Exportálás Excelbe</Button>
+      <Button onClick={handleExportPDF}>Exportálás PDF-be</Button>
     </div>
   );
 }
