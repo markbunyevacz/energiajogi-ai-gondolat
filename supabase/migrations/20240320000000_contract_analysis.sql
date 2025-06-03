@@ -11,6 +11,20 @@ CREATE TYPE risk_type AS ENUM (
   'other'
 );
 
+-- Create user role enum
+CREATE TYPE user_role AS ENUM ('admin', 'jogász', 'analyst', 'viewer');
+
+-- Create profiles table
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT NOT NULL,
+    name TEXT NOT NULL,
+    role user_role DEFAULT 'viewer',
+    avatar_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- Create documents table if it doesn't exist
 CREATE TABLE IF NOT EXISTS documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
