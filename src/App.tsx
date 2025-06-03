@@ -7,6 +7,7 @@ import { ResetPasswordRequest } from './pages/ResetPasswordRequest';
 import { ResetPassword } from './pages/ResetPassword';
 import { AuthPage } from '@/pages/AuthPage';
 import { supabase } from '@/lib/supabase';
+import { LovableFrontend } from './components/LovableFrontend';
 
 export function App() {
   const [session, setSession] = useState(null);
@@ -54,7 +55,7 @@ export function App() {
             path="/legal"
             element={
               <ProtectedRoute requiredRole="legal_manager">
-                <div>Legal Manager Dashboard</div>
+                <LovableFrontend />
               </ProtectedRoute>
             }
           />
