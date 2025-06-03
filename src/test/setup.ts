@@ -1,12 +1,33 @@
-// Mock environment variables
-process.env.SUPABASE_URL = 'https://mock-supabase-url.com';
-process.env.SUPABASE_ANON_KEY = 'mock-anon-key';
+import { beforeAll, afterAll } from 'vitest';
+import { supabase } from '@/integrations/supabase/client';
 
-// Global test setup
-beforeAll(() => {
-  // Add any global setup here
+// Clean up test data before running tests
+beforeAll(async () => {
+  await supabase.from('queue_messages').delete().neq('id', '');
+  await supabase.from('legal_hierarchy').delete().neq('id', '');
+  await supabase.from('legal_documents').delete().neq('id', '');
+  await supabase.from('legal_domains').delete().neq('code', 'energy');
+
+  // Create test energy domain if it doesn't exist
+  const { data: energyDomain } = await supabase
+    .from('legal_domains')
+    .select('id')
+    .eq('code', 'energy')
+    .single();
+
+  if (!energyDomain) {
+    await supabase.from('legal_domains').insert({
+      code: 'energy',
+      name: 'Energy Law',
+      description: 'Hungarian energy law and regulations',
+    });
+  }
 });
 
-afterAll(() => {
-  // Add any global cleanup here
+// Clean up test data after running tests
+afterAll(async () => {
+  await supabase.from('queue_messages').delete().neq('id', '');
+  await supabase.from('legal_hierarchy').delete().neq('id', '');
+  await supabase.from('legal_documents').delete().neq('id', '');
+  await supabase.from('legal_domains').delete().neq('code', 'energy');
 }); 
