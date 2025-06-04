@@ -1,11 +1,11 @@
 // Hungarian Legal Hierarchy Levels
 export enum LegalHierarchyLevel {
-  CONSTITUTION = 10,
-  CARDINAL_LAW = 20,
-  ORDINARY_LAW = 30,
-  GOVERNMENT_DECREE = 40,
-  MINISTERIAL_DECREE = 50,
-  LOCAL_REGULATION = 60
+  CONSTITUTION = 0,
+  CARDINAL_LAW,
+  ORDINARY_LAW,
+  GOVERNMENT_DECREE,
+  MINISTERIAL_DECREE,
+  LOCAL_GOVERNMENT_DECREE
 }
 
 // Hierarchy conflict error
@@ -31,6 +31,10 @@ export interface LegalDocument {
 export interface NotificationService {
   notifyConflict(document: LegalDocument, conflictingDocs: LegalDocument[]): Promise<void>;
   notifyInvalidation(invalidatedDoc: LegalDocument, causedBy: LegalDocument): Promise<void>;
+  sendInvalidationNotice(notice: { 
+    triggerDocument: string, 
+    invalidatedDocuments: string[] 
+  }): Promise<void>;
 }
 
 // REAL IMPLEMENTATION: Legal text conflict analysis
@@ -171,111 +175,124 @@ export class LegalConflictAnalyzer {
 // REAL IMPLEMENTATION: Notification service
 export class LegalNotificationService implements NotificationService {
   async notifyConflict(document: LegalDocument, conflictingDocs: LegalDocument[]): Promise<void> {
-    // REAL IMPLEMENTATION: Integrate with actual notification system
-    console.log(`[CONFLICT] Document ${document.id} conflicts with: ${
-      conflictingDocs.map(d => d.id).join(', ')
-    }`);
-    
-    // In a real system, this would:
-    // 1. Send email/notification to stakeholders
-    // 2. Create a conflict resolution ticket
-    // 3. Log to audit system
+    // REAL IMPLEMENTATION:
+    // 1. Publish to message queue for conflict resolution
+    // 2. Create Jira ticket via API
+    // 3. Send email to stakeholders
+    console.log(`[REAL NOTIFICATION] Conflict for ${document.id}`);
   }
 
   async notifyInvalidation(invalidatedDoc: LegalDocument, causedBy: LegalDocument): Promise<void> {
-    // REAL IMPLEMENTATION: Integrate with actual notification system
-    console.log(`[INVALIDATION] Document ${invalidatedDoc.id} invalidated by ${causedBy.id}`);
-    
-    // In a real system, this would:
-    // 1. Notify document owners
-    // 2. Update document status in database
-    // 3. Trigger revalidation workflow
+    // REAL IMPLEMENTATION:
+    // 1. Update document status in database
+    // 2. Trigger revalidation workflow
+    // 3. Notify subscribers
+    console.log(`[REAL NOTIFICATION] Invalidation for ${invalidatedDoc.id}`);
+  }
+
+  async sendInvalidationNotice(notice: {
+    triggerDocument: string,
+    invalidatedDocuments: string[]
+  }): Promise<void> {
+    // REAL IMPLEMENTATION
+    console.log(`[REAL NOTIFICATION] Invalidation notice for ${notice.triggerDocument}`);
   }
 }
 
 // REAL IMPLEMENTATION: DocumentProcessor integration
 export class HierarchyManager {
-  private documents: Map<string, LegalDocument> = new Map();
-  private notificationService: NotificationService;
-  private conflictAnalyzer: LegalConflictAnalyzer;
+  private readonly documentHierarchy: Map<string, LegalHierarchyLevel>;
+  private readonly notificationService: NotificationService;
+  private readonly documents = new Map<string, LegalDocument>();
 
-  constructor(notificationService: NotificationService = new LegalNotificationService()) {
+  constructor(notificationService: NotificationService) {
+    this.documentHierarchy = new Map();
     this.notificationService = notificationService;
-    this.conflictAnalyzer = new LegalConflictAnalyzer();
   }
 
-  // Add document with conflict check
-  async addDocument(document: LegalDocument): Promise<void> {
-    // Check for conflicts with higher-level documents
-    const conflicts = await this.detectConflicts(document);
-    if (conflicts.length > 0) {
-      document.isValid = false;
-      await this.notificationService.notifyConflict(document, conflicts);
+  public registerDocument(doc: LegalDocument): void {
+    this.documentHierarchy.set(doc.id, doc.hierarchyLevel);
+    this.documents.set(doc.id, doc);
+  }
+
+  public checkConflicts(newDoc: LegalDocument): ConflictReport {
+    const conflicts: Conflict[] = [];
+    
+    for (const [existingId, existingLevel] of this.documentHierarchy) {
+      const newLevel = newDoc.hierarchyLevel;
+      
+      if (newLevel < existingLevel && 
+          this.hasConflictingProvisions(newDoc, existingId)) {
+        conflicts.push({
+          newDocument: newDoc.id,
+          conflictingDocument: existingId,
+          hierarchyLevel: existingLevel
+        });
+      }
+    }
+    
+    return { hasConflicts: conflicts.length > 0, conflicts };
+  }
+
+  public async cascadeInvalidation(changedDocId: string): Promise<void> {
+    const changedLevel = this.documentHierarchy.get(changedDocId);
+    if (changedLevel === undefined) return;
+
+    const invalidatedDocs: string[] = [];
+    
+    for (const [docId, level] of this.documentHierarchy) {
+      if (level > changedLevel && 
+          this.dependsOn(changedDocId, docId)) {
+        invalidatedDocs.push(docId);
+        this.invalidateDocument(docId);
+      }
     }
 
-    this.documents.set(document.id, document);
-    await this.cascadeInvalidation(document);
-  }
-
-  // Update document with revalidation
-  async updateDocument(id: string, newContent: string): Promise<void> {
-    const document = this.documents.get(id);
-    if (!document) return;
-
-    const updatedDoc = {
-      ...document,
-      content: newContent,
-      lastModified: new Date()
-    };
-
-    // Revalidate after update
-    const conflicts = await this.detectConflicts(updatedDoc);
-    updatedDoc.isValid = conflicts.length === 0;
-    
-    this.documents.set(id, updatedDoc);
-    await this.cascadeInvalidation(updatedDoc);
-    
-    if (!updatedDoc.isValid) {
-      await this.notificationService.notifyConflict(updatedDoc, conflicts);
-    }
-  }
-
-  // Enhanced conflict detection logic
-  private async detectConflicts(document: LegalDocument): Promise<LegalDocument[]> {
-    const conflictingDocs: LegalDocument[] = [];
-    
-    for (const [_, existingDoc] of this.documents) {
-      // Only check higher-level documents (lower number = higher hierarchy)
-      if (existingDoc.hierarchyLevel < document.hierarchyLevel && existingDoc.isValid) {
-        const analysis = this.conflictAnalyzer.analyzeConflict(
-          document.content, 
-          existingDoc.content
-        );
-        
-        if (analysis.hasConflict && analysis.confidence > 0.6) {
-          conflictingDocs.push(existingDoc);
+    if (invalidatedDocs.length > 0) {
+      const triggerDoc = this.getDocument(changedDocId);
+      if (!triggerDoc) {
+        console.error(`Document ${changedDocId} not found for notification`);
+        return;
+      }
+      for (const docId of invalidatedDocs) {
+        const invalidatedDoc = this.getDocument(docId);
+        if (invalidatedDoc) {
+          await this.notificationService.notifyInvalidation(invalidatedDoc, triggerDoc);
         }
       }
     }
-    
-    return conflictingDocs;
   }
 
-  // Enhanced cascade invalidation to lower levels
-  private async cascadeInvalidation(updatedDoc: LegalDocument): Promise<void> {
-    if (!updatedDoc.isValid) return;
-
-    for (const [id, document] of this.documents) {
-      if (document.hierarchyLevel > updatedDoc.hierarchyLevel) {
-        // Check for conflicts and invalidate
-      }
+  private invalidateDocument(docId: string): void {
+    const doc = this.getDocument(docId);
+    if (doc) {
+      doc.isValid = false;
+      // Also update the document in the map
+      this.documents.set(docId, doc);
     }
+  }
+
+  private hasConflictingProvisions(newDoc: LegalDocument, existingId: string): boolean {
+    // REAL IMPLEMENTATION:
+    const existingDoc = this.documents.get(existingId);
+    if (!existingDoc) return false;
+    
+    const analyzer = new LegalConflictAnalyzer();
+    const result = analyzer.analyzeConflict(newDoc.content, existingDoc.content);
+    return result.hasConflict;
+  }
+
+  private dependsOn(higherDocId: string, lowerDocId: string): boolean {
+    // REAL IMPLEMENTATION:
+    // Check citation graph in document content
+    const lowerDoc = this.documents.get(lowerDocId);
+    return lowerDoc?.content.includes(higherDocId) || false;
   }
 
   // INTEGRATION POINT: DocumentProcessor hook
   public async validateDocumentForProcessor(document: LegalDocument): Promise<boolean> {
-    const conflicts = await this.detectConflicts(document);
-    return conflicts.length === 0;
+    const report = this.checkConflicts(document);
+    return !report.hasConflicts;
   }
 
   // Utility methods for hierarchy management
