@@ -786,16 +786,6 @@ export type Database = {
         }
         Relationships: []
       }
-      citation_nodes: {
-        Row: CitationNode;
-        Insert: Omit<CitationNode, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<CitationNode, 'id'>>;
-      }
-      citation_edges: {
-        Row: CitationEdge;
-        Insert: Omit<CitationEdge, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<CitationEdge, 'id'>>;
-      }
     }
     Views: {
       [_ in never]: never
@@ -1053,27 +1043,3 @@ export const Constants = {
     },
   },
 } as const
-
-export interface CitationNode {
-  id: string;
-  document_id: string;
-  title: string;
-  type: string;
-  date: string;
-  content: string;
-  metadata: Json;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CitationEdge {
-  id: string;
-  source_id: string;
-  target_id: string;
-  type: 'explicit' | 'implicit';
-  confidence: number;
-  context: string;
-  metadata: Json;
-  created_at: string;
-  updated_at: string;
-}
