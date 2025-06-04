@@ -114,6 +114,44 @@ CREATE TABLE contract_impacts (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create citation_types enum
+DO $$ BEGIN
+    CREATE TYPE citation_type AS ENUM (
+        'explicit',
+        'implicit',
+        'amendment',
+        'repeal',
+        'reference'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- Create citation_relationships table
+CREATE TABLE citation_relationships (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source_document_id UUID REFERENCES legal_documents(id) ON DELETE CASCADE,
+    target_document_id UUID REFERENCES legal_documents(id) ON DELETE CASCADE,
+    citation_type citation_type NOT NULL,
+    citation_text TEXT,
+    confidence_score FLOAT NOT NULL DEFAULT 1.0,
+    semantic_similarity FLOAT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(source_document_id, target_document_id, citation_type)
+);
+
+-- Create citation_impact_chains table
+CREATE TABLE citation_impact_chains (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    root_document_id UUID REFERENCES legal_documents(id) ON DELETE CASCADE,
+    affected_document_id UUID REFERENCES legal_documents(id) ON DELETE CASCADE,
+    impact_path UUID[] NOT NULL,
+    impact_level impact_level NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes
 CREATE INDEX idx_legal_documents_type ON legal_documents(document_type);
 CREATE INDEX idx_legal_documents_publication_date ON legal_documents(publication_date);
