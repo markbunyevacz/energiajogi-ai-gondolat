@@ -16,7 +16,9 @@
     "test": "vitest",
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:integration": "NODE_OPTIONS='--experimental-vm-modules --no-warnings' vitest run",
+    "process:documents": "NODE_OPTIONS='--loader ts-node/esm' ts-node scripts/processLegalDocuments.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.18.0",

@@ -1,8 +1,7 @@
-import { supabase } from '@/integrations/supabase/client';
-import { DocumentProcessor } from '@/lib/documentProcessor';
-import { embeddingService } from '@/services/document/embeddingService';
-import { confidenceCalculator } from '@/services/document/confidenceCalculator';
-import type { CitationNode as DBCitationNode, CitationEdge as DBCitationEdge } from '@/integrations/supabase/types';
+import { supabase } from '../../integrations/supabase/client';
+import { DocumentProcessor } from '../../lib/documentProcessor';
+import { embeddingService } from '../../services/document/embeddingService';
+import { confidenceCalculator } from '../../services/document/confidenceCalculator';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { 
   CitationRelationship, 
@@ -14,7 +13,10 @@ import {
 } from './types';
 import { CitationExtractor } from './CitationExtractor';
 import { CitationError } from './errors';
-import { DocumentMetadata } from '@/lib/claude';
+import { Document } from '../document-processing/Document';
+import { EmbeddingService } from '../embedding/EmbeddingService';
+import { LegalDocument } from '../../models/legal-document';
+import { LegalCitationParser } from '../../lib/legal-citation-parser';
 
 interface GraphNode {
   id: string;
@@ -22,6 +24,21 @@ interface GraphNode {
   incomingCitations: CitationRelationship[];
   outgoingCitations: CitationRelationship[];
 }
+
+type EdgeType = 'explicit' | 'implicit';
+
+interface CitationEdge {
+  source: string;
+  target: string;
+  citationType: EdgeType;
+}
+
+export type Citation = {
+  citing_document_id: string;
+  cited_document_id: string;
+  type: 'explicit' | 'implicit';
+  context?: string;
+};
 
 /**
  * CitationGraphBuilder is responsible for building and managing the citation graph
@@ -33,7 +50,12 @@ export class CitationGraphBuilder {
   private static readonly CONFIDENCE_THRESHOLD = 0.7;
 
   private readonly citationExtractor: CitationExtractor;
-  private graph: Map<string, GraphNode>;
+  private graph: Map<string, Set<CitationEdge>> = new Map();
+  private documents: Map<string, Document> = new Map();
+  private embeddingService: EmbeddingService;
+  private processor: DocumentProcessor<LegalDocument>;
+  private supabase: SupabaseClient;
+  private citationParser: LegalCitationParser;
 
   /**
    * Creates a new CitationGraphBuilder instance.
@@ -41,11 +63,14 @@ export class CitationGraphBuilder {
    * @param openAiApiKey - The OpenAI API key for semantic analysis
    */
   constructor(
-    private readonly supabase: SupabaseClient,
-    private readonly openAiApiKey: string
+    processor: DocumentProcessor<LegalDocument>,
+    embeddingService: EmbeddingService,
+    supabase: SupabaseClient
   ) {
-    this.citationExtractor = new CitationExtractor(supabase, openAiApiKey);
-    this.graph = new Map();
+    this.processor = processor;
+    this.embeddingService = embeddingService;
+    this.supabase = supabase;
+    this.citationParser = new LegalCitationParser();
   }
 
   /**
@@ -53,35 +78,31 @@ export class CitationGraphBuilder {
    * @param documents - Array of processed documents to build the graph from
    * @throws {CitationError} If graph building fails
    */
-  public async buildGraph(documents: ProcessedDocument[]): Promise<void> {
+  public async buildGraph(documents: Document[]): Promise<void> {
+    const startTime = performance.now();
+    
     try {
-      // Clear existing graph
-      this.graph.clear();
+      // Store documents for reference
+      documents.forEach(doc => this.documents.set(doc.id, doc));
+      
+      // Initialize graph nodes
+      documents.forEach(doc => this.graph.set(doc.id, new Set()));
 
-      // Create nodes for all documents
+      // Process explicit citations
       for (const doc of documents) {
-        this.graph.set(doc.id, {
-          id: doc.id,
-          document: doc,
-          incomingCitations: [],
-          outgoingCitations: []
-        });
-      }
-
-      // Extract citations and build relationships
-      for (const doc of documents) {
-        const citations = await this.citationExtractor.extractCitations(doc);
-        
+        const citations = this.extractExplicitCitations(doc.content, doc.metadata.jurisdiction);
         for (const citation of citations) {
-          const sourceNode = this.graph.get(citation.source_document_id);
-          const targetNode = this.graph.get(citation.target_document_id);
-
-          if (sourceNode && targetNode) {
-            sourceNode.outgoingCitations.push(citation);
-            targetNode.incomingCitations.push(citation);
+          const targetDoc = this.findDocumentByCitation(citation);
+          if (targetDoc) {
+            this.addEdge(doc.id, targetDoc.id, 'explicit');
           }
         }
       }
+
+      // Process implicit citations
+      console.time('ImplicitCitationProcessing');
+      await this.processImplicitCitations(documents);
+      console.timeEnd('ImplicitCitationProcessing');
 
       // Store citation relationships in Supabase
       await this.storeCitations(documents);
@@ -101,27 +122,23 @@ export class CitationGraphBuilder {
    * @param documents - Array of processed documents
    * @throws {CitationError} If storage fails
    */
-  private async storeCitations(documents: ProcessedDocument[]): Promise<void> {
+  private async storeCitations(documents: Document[]): Promise<void> {
     try {
-      const citations = Array.from(this.graph.values())
-        .flatMap(node => node.outgoingCitations)
-        .map(citation => ({
-          ...citation,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          metadata: {
-            domain: citation.metadata.domain,
-            confidence: citation.metadata.confidence,
-            context: citation.metadata.context,
-            lastVerified: new Date().toISOString()
-          }
-        }));
+      const edges: any[] = [];
+      for (const [source, targets] of this.graph) {
+        for (const { target, citationType } of targets) {
+          edges.push({
+            source_document: source,
+            target_document: target,
+            citation_type: citationType,
+            created_at: new Date().toISOString()
+          });
+        }
+      }
 
       const { error } = await this.supabase
-        .from('citation_relationships')
-        .upsert(citations, {
-          onConflict: 'id'
-        });
+        .from('citation_graph')
+        .insert(edges);
 
       if (error) throw error;
 
@@ -148,8 +165,7 @@ export class CitationGraphBuilder {
    */
   public async findImpactChains(
     sourceDocumentId: string,
-    maxDepth: number = 3,
-    minConfidence: number = 0.7
+    maxDepth: number = 3
   ): Promise<ImpactChain> {
     try {
       const visited = new Set<string>();
@@ -169,17 +185,15 @@ export class CitationGraphBuilder {
         const node = this.graph.get(currentId);
         if (!node) return;
 
-        for (const citation of node.outgoingCitations) {
-          if (citation.confidence_score < minConfidence) continue;
-
-          const newPath = [...path, citation.target_document_id];
+        for (const edge of node) {
+          const newPath = [...path, edge.target];
           impactChain.affectedDocuments.push({
-            documentId: citation.target_document_id,
+            documentId: edge.target,
             path: newPath,
-            confidence: citation.confidence_score
+            confidence: 1.0
           });
 
-          await traverse(citation.target_document_id, newPath, depth + 1);
+          await traverse(edge.target, newPath, depth + 1);
         }
       };
 
@@ -212,17 +226,9 @@ export class CitationGraphBuilder {
       if (error) throw error;
 
       return edges
-        .map(edge => this.graph.get(edge.source_document_id)?.document)
-        .filter((node): node is ProcessedDocument => node !== undefined)
-        .map(doc => ({
-          id: doc.id,
-          documentId: doc.metadata.title,
-          title: doc.metadata.title,
-          type: doc.metadata.documentType,
-          date: doc.metadata.date,
-          content: doc.content,
-          metadata: doc.metadata
-        }));
+        .map(edge => this.documents.get(edge.source_document_id))
+        .filter((doc): doc is Document => doc !== undefined)
+        .map(doc => this.mapToCitationNode(doc));
     } catch (error) {
       throw new CitationError(
         'Failed to get citing documents',
@@ -250,17 +256,9 @@ export class CitationGraphBuilder {
       if (error) throw error;
 
       return edges
-        .map(edge => this.graph.get(edge.target_document_id)?.document)
-        .filter((node): node is ProcessedDocument => node !== undefined)
-        .map(doc => ({
-          id: doc.id,
-          documentId: doc.metadata.title,
-          title: doc.metadata.title,
-          type: doc.metadata.documentType,
-          date: doc.metadata.date,
-          content: doc.content,
-          metadata: doc.metadata
-        }));
+        .map(edge => this.documents.get(edge.target_document_id))
+        .filter((doc): doc is Document => doc !== undefined)
+        .map(doc => this.mapToCitationNode(doc));
     } catch (error) {
       throw new CitationError(
         'Failed to get cited documents',
@@ -299,9 +297,9 @@ export class CitationGraphBuilder {
       }
 
       const citationCounts = new Map<string, number>();
-      for (const citation of node.incomingCitations) {
-        const count = citationCounts.get(citation.source_document_id) || 0;
-        citationCounts.set(citation.source_document_id, count + 1);
+      for (const edge of node) {
+        const count = citationCounts.get(edge.target) || 0;
+        citationCounts.set(edge.target, count + 1);
       }
 
       const topCited = Array.from(citationCounts.entries())
@@ -310,8 +308,8 @@ export class CitationGraphBuilder {
         .slice(0, 5);
 
       return {
-        incomingCount: node.incomingCitations.length,
-        outgoingCount: node.outgoingCitations.length,
+        incomingCount: node.size,
+        outgoingCount: node.size,
         topCitedDocuments: topCited
       };
     } catch (error) {
@@ -322,6 +320,152 @@ export class CitationGraphBuilder {
         true,
         { error }
       );
+    }
+  }
+
+  private extractExplicitCitations(content: string, jurisdiction: string): string[] {
+    return this.citationParser.extractCitations(content, {
+      jurisdiction,
+      types: ['case', 'statute', 'regulation']
+    }).map(c => c.normalized);
+  }
+
+  private findDocumentByCitation(citation: string): Document | null {
+    for (const doc of this.documents.values()) {
+      if (doc.metadata.citation === citation) {
+        return doc;
+      }
+    }
+    return null;
+  }
+
+  private async processImplicitCitations(documents: Document[]) {
+    for (const doc of documents) {
+      if (!doc.embedding) continue;
+      
+      const similarDocs = await this.embeddingService.findSimilarDocuments(
+        doc.embedding,
+        0.7,
+        10
+      );
+      
+      for (const similarDoc of similarDocs) {
+        if (doc.id !== similarDoc.id) {
+          this.addEdge(doc.id, similarDoc.id, 'implicit');
+        }
+      }
+    }
+  }
+
+  private addEdge(source: string, target: string, type: EdgeType) {
+    if (!this.graph.has(source)) {
+      this.graph.set(source, new Set());
+    }
+    this.graph.get(source)!.add({ source, target, citationType: type });
+  }
+
+  public async getImpactChain(
+    sourceDocId: string,
+    maxDepth: number = 5
+  ): Promise<string[]> {
+    const visited = new Set<string>();
+    const impactChain: string[] = [];
+    const queue: { id: string; depth: number }[] = [{ id: sourceDocId, depth: 0 }];
+
+    while (queue.length > 0) {
+      const { id, depth } = queue.shift()!;
+      
+      if (visited.has(id) || depth > maxDepth) continue;
+      
+      visited.add(id);
+      impactChain.push(id);
+      
+      const { data: edges } = await this.supabase
+        .from('citation_edges')
+        .select('target')
+        .eq('source', id);
+      
+      for (const edge of edges || []) {
+        if (!visited.has(edge.target)) {
+          queue.push({ id: edge.target, depth: depth + 1 });
+        }
+      }
+    }
+
+    return impactChain;
+  }
+
+  // Find implicit citations via semantic similarity
+  async findImplicitCitations(doc: LegalDocument): Promise<string[]> {
+    const embedding = await this.embeddingService.getDocumentEmbedding(doc.id);
+    const threshold = this.getSimilarityThreshold(doc.domain);
+    
+    return (await this.embeddingService.findSimilarDocuments(
+      embedding,
+      threshold,
+      10
+    )).map(d => d.id).filter(id => id !== doc.id);
+  }
+
+  private mapToCitationNode(doc: Document): CitationNode {
+    return {
+      id: doc.id,
+      documentId: doc.id,
+      title: doc.metadata.title || 'Untitled',
+      type: doc.metadata.documentType || 'other',
+      date: doc.metadata.date || new Date().toISOString(),
+      content: doc.content,
+      metadata: {
+        ...doc.metadata,
+        references: doc.metadata.references || [],
+        legalAreas: doc.metadata.legalAreas || [],
+        source: doc.metadata.source || 'Unknown',
+        documentType: doc.metadata.documentType || 'other'
+      }
+    };
+  }
+
+  async buildGraphForDocument(doc: LegalDocument): Promise<CitationEdge[]> {
+    const content = await this.processor.extractText(doc);
+    const explicitCitations = this.extractExplicitCitations(content, doc.jurisdiction);
+    const implicitCitations = await this.findImplicitCitations(doc);
+    
+    const edges: CitationEdge[] = [
+      ...explicitCitations.map(target => ({
+        source: doc.id,
+        target,
+        citationType: 'explicit' as const
+      })),
+      ...implicitCitations.map(target => ({
+        source: doc.id,
+        target,
+        citationType: 'implicit' as const
+      }))
+    ];
+
+    await this.persistEdges(edges);
+    return edges;
+  }
+
+  private getSimilarityThreshold(domain: Domain): number {
+    const thresholds: Record<Domain, number> = {
+      'energy': 0.82,
+      'tax': 0.85,
+      'labor': 0.80,
+      'general': 0.75
+    };
+    return thresholds[domain] || 0.80;
+  }
+
+  private async persistEdges(edges: CitationEdge[]) {
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < edges.length; i += BATCH_SIZE) {
+      const batch = edges.slice(i, i + BATCH_SIZE);
+      const { error } = await this.supabase
+        .from('citation_edges')
+        .insert(batch);
+      
+      if (error) throw new Error(`Batch insert failed: ${error.message}`);
     }
   }
 } 
