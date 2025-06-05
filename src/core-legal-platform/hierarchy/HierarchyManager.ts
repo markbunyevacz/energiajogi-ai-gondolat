@@ -287,4 +287,21 @@ export class HierarchyManager {
   getAllDocuments(): LegalDocument[] {
     return Array.from(this.documents.values());
   }
-} 
+}
+
+const mergeLegalState = (hierarchyState, queueState) => ({
+  legalHierarchy: {
+    ...hierarchyState,
+    validationQueue: queueState.priorityQueue
+  }
+});
+
+// Local changes (queue integration)
+import { MessageQueue } from '../queue/MessageQueue';
+
+// Feature branch (hierarchy implementation)
+import { NotificationService } from '../notifications';
+
+// Resolved version (merge both)
+import { MessageQueue } from '../queue/MessageQueue';
+import { NotificationService } from '../notifications'; 

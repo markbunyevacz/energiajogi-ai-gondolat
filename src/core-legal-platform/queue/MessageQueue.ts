@@ -146,4 +146,30 @@ export class MessageQueue extends EventEmitter {
   public stop() {
     this.processing = false;
   }
-} 
+}
+
+async function mergeQueues() {
+  const [hierarchyResults, queueResults] = await Promise.allSettled([
+    import('./hierarchy/HierarchyManager'),
+    import('./queue/MessageQueue')
+  ]);
+  
+  return {
+    hierarchy: hierarchyResults.status === 'fulfilled' 
+      ? hierarchyResults.value 
+      : null,
+    queue: queueResults.value
+  };
+}
+
+// Local priority queue changes
+const PRIORITY_LEVELS = ['HIGH', 'MEDIUM', 'LOW'];
+
+// Feature branch additions
+const LEGAL_PRIORITIES = [HierarchyLevel.Constitution, ...];
+
+// Merged solution
+const PRIORITY_MAP = new Map([
+  [HierarchyLevel.Constitution, 'CRITICAL'],
+  ... // Combine both approaches
+]); 
