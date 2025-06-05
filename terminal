@@ -1,0 +1,2 @@
+git branch       # Shows local branches
+git branch -a    # Shows all branches (local + remote) 
