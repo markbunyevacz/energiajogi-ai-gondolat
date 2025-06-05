@@ -3,45 +3,155 @@ import Tesseract from 'tesseract.js';
 import { getDocument } from 'pdfjs-dist';
 import { ContractAnalysisError, ErrorCodes } from '@/types/errors';
 
+/**
+ * AI Agent Router Service
+ * 
+ * This service intelligently routes user queries to the most appropriate AI agent
+ * based on the content and context of the question. It supports multiple specialized
+ * agents for different legal domains.
+ * 
+ * Features:
+ * - Intelligent query analysis and agent selection
+ * - Context-aware routing based on user history and role
+ * - Confidence scoring for agent recommendations
+ * - Specialized prompts for different agent types
+ * - Document processing capabilities (OCR, PDF extraction)
+ * 
+ * Supported Agent Types:
+ * - Contract Analysis: Specialized in contract review and analysis
+ * - Legal Research: Focused on legal precedents and regulations
+ * - Compliance: Handles regulatory compliance and risk assessment
+ * - General: Fallback for general legal questions
+ */
+
+/**
+ * Available AI Agent Types
+ * 
+ * Each agent type is specialized for specific legal domains
+ */
 export type AgentType = 'contract' | 'legal_research' | 'compliance' | 'general';
 
+/**
+ * Agent Context Interface
+ * 
+ * Provides contextual information to improve agent selection accuracy
+ */
 export interface AgentContext {
-  previousQuestions: string[];
-  documentTypes: string[];
-  userRole: string;
-  sessionHistory: any[];
+  previousQuestions: string[];    // Recent questions from the user
+  documentTypes: string[];        // Types of documents being analyzed
+  userRole: string;              // User's role (influences agent selection)
+  sessionHistory: any[];         // Complete session history for context
 }
 
+/**
+ * Agent Response Interface
+ * 
+ * Standardized response from the agent router
+ */
 export interface AgentResponse {
-  agentType: AgentType;
-  confidence: number;
-  reasoning: string;
-  suggestedPrompt: string;
+  agentType: AgentType;          // Selected agent type
+  confidence: number;            // Confidence score (0-1)
+  reasoning: string;             // Explanation for the selection
+  suggestedPrompt: string;       // Enhanced prompt for the selected agent
 }
 
+/**
+ * AI Agent Router Class
+ * 
+ * Main class responsible for analyzing queries and routing them to appropriate agents
+ */
 class AIAgentRouter {
+  /**
+   * Contract Analysis Keywords
+   * 
+   * Hungarian keywords that indicate contract-related queries
+   * These help identify when the contract analysis agent should be used
+   */
   private contractKeywords = [
-    'szerződés', 'megállapodás', 'feltétel', 'felmondás', 'módosítás',
-    'kötelezettség', 'jog', 'kártérítés', 'garancia', 'szavatosság'
+    'szerződés',      // contract
+    'megállapodás',   // agreement
+    'feltétel',       // condition/term
+    'felmondás',      // termination
+    'módosítás',      // modification
+    'kötelezettség',  // obligation
+    'jog',            // right
+    'kártérítés',     // compensation/damages
+    'garancia',       // guarantee
+    'szavatosság'     // warranty
   ];
 
+  /**
+   * Legal Research Keywords
+   * 
+   * Hungarian keywords that indicate legal research queries
+   * These help identify when the legal research agent should be used
+   */
   private legalResearchKeywords = [
-    'jogszabály', 'törvény', 'rendelet', 'határozat', 'precedens',
-    'bírósági', 'ítélet', 'jogi', 'értelmezés', 'norma'
+    'jogszabály',     // legislation
+    'törvény',        // law
+    'rendelet',       // decree
+    'határozat',      // resolution
+    'precedens',      // precedent
+    'bírósági',       // judicial
+    'ítélet',         // judgment
+    'jogi',           // legal
+    'értelmezés',     // interpretation
+    'norma'           // norm
   ];
 
+  /**
+   * Compliance Keywords
+   * 
+   * Hungarian keywords that indicate compliance-related queries
+   * These help identify when the compliance agent should be used
+   */
   private complianceKeywords = [
-    'megfelelőség', 'előírás', 'szabályozás', 'ellenőrzés', 'audit',
-    'kockázat', 'biztonság', 'adatvédelem', 'gdpr', 'mekh'
+    'megfelelőség',   // compliance
+    'előírás',        // regulation/requirement
+    'szabályozás',    // regulation
+    'ellenőrzés',     // control/audit
+    'audit',          // audit
+    'kockázat',       // risk
+    'biztonság',      // security
+    'adatvédelem',    // data protection
+    'gdpr',           // GDPR
+    'mekh'            // Hungarian Energy and Public Utility Regulatory Authority
   ];
 
-  analyzeQuestion(question: string, context?: AgentContext, options?: {
-    extractClauses?: boolean;
-    highlightRisks?: boolean;
-    suggestImprovements?: boolean;
-    contractText?: string;
-  }): AgentResponse {
+  /**
+   * Analyze Question and Route to Agent
+   * 
+   * Main method that analyzes a user question and determines the best agent to handle it.
+   * Uses keyword matching, context analysis, and scoring to make intelligent routing decisions.
+   * 
+   * @param question - The user's question/query
+   * @param context - Optional context information for better routing
+   * @param options - Optional processing options for the selected agent
+   * @returns AgentResponse with selected agent and confidence information
+   * 
+   * @example
+   * ```typescript
+   * const response = router.analyzeQuestion(
+   *   "Szerződés felmondási feltételei",
+   *   { previousQuestions: [], documentTypes: ['contract'], userRole: 'legal_manager' }
+   * );
+   * // Returns: { agentType: 'contract', confidence: 0.8, ... }
+   * ```
+   */
+  analyzeQuestion(
+    question: string, 
+    context?: AgentContext, 
+    options?: {
+      extractClauses?: boolean;        // Whether to extract contract clauses
+      highlightRisks?: boolean;        // Whether to highlight risks
+      suggestImprovements?: boolean;   // Whether to suggest improvements
+      contractText?: string;           // Full contract text for analysis
+    }
+  ): AgentResponse {
+    // Convert question to lowercase for case-insensitive matching
     const questionLower = question.toLowerCase();
+    
+    // Calculate relevance scores for each agent type
     const scores = {
       contract: this.calculateScore(questionLower, this.contractKeywords),
       legal_research: this.calculateScore(questionLower, this.legalResearchKeywords),
@@ -49,11 +159,12 @@ class AIAgentRouter {
       general: 0.3 // Base score for general queries
     };
 
-    // Add context-based scoring
+    // Apply context-based adjustments if context is provided
     if (context) {
       this.adjustScoresWithContext(scores, context);
     }
 
+    // Find the agent type with the highest score
     const bestMatch = Object.entries(scores).reduce((a, b) => 
       scores[a[0] as AgentType] > scores[b[0] as AgentType] ? a : b
     );
@@ -69,24 +180,46 @@ class AIAgentRouter {
     };
   }
 
+  /**
+   * Calculate Keyword Match Score
+   * 
+   * Calculates how well a text matches a set of keywords
+   * Returns a score between 0 and 1 based on the percentage of matched keywords
+   * 
+   * @param text - Text to analyze
+   * @param keywords - Array of keywords to match against
+   * @returns Score between 0 and 1
+   */
   private calculateScore(text: string, keywords: string[]): number {
     const matches = keywords.filter(keyword => text.includes(keyword));
     return matches.length / keywords.length;
   }
 
-  private adjustScoresWithContext(scores: Record<AgentType, number>, context: AgentContext) {
-    // Boost scores based on recent questions
+  /**
+   * Adjust Scores with Context
+   * 
+   * Modifies agent scores based on contextual information like user role,
+   * previous questions, and document types being analyzed
+   * 
+   * @param scores - Current scores object to modify
+   * @param context - Context information for adjustments
+   */
+  private adjustScoresWithContext(scores: Record<AgentType, number>, context: AgentContext): void {
+    // Analyze recent questions for patterns
     const recentQuestions = context.previousQuestions.slice(0, 3).join(' ').toLowerCase();
     
+    // Boost contract agent if recent questions were about contracts
     if (recentQuestions.includes('szerződés')) {
       scores.contract += 0.2;
     }
     
+    // Boost contract agent if working with contract documents
     if (context.documentTypes.includes('szerződés')) {
       scores.contract += 0.3;
     }
 
     // Role-based adjustments
+    // Legal professionals might prefer more detailed legal research
     if (context.userRole === 'jogász') {
       scores.legal_research += 0.1;
     }
