@@ -1,0 +1,42 @@
+{
+  "Kártérítés": {
+    "canonicalName": "Kártérítés",
+    "translations": {
+      "hu": "Kártérítés",
+      "en": "Damages",
+      "de": "Schadensersatz"
+    }
+  },
+  "Szerződés": {
+    "canonicalName": "Szerződés",
+    "translations": {
+      "hu": "Szerződés",
+      "en": "Contract",
+      "de": "Vertrag"
+    }
+  },
+  "Elállás": {
+    "canonicalName": "Elállás",
+    "translations": {
+      "hu": "Elállás",
+      "en": "Rescission",
+      "de": "Rücktritt"
+    }
+  },
+  "Jogerő": {
+    "canonicalName": "Jogerő",
+    "translations": {
+        "hu": "Jogerő",
+        "en": "Final legal effect",
+        "de": "Rechtskraft"
+    }
+  },
+  "Fellebbezés": {
+    "canonicalName": "Fellebbezés",
+    "translations": {
+        "hu": "Fellebbezés",
+        "en": "Appeal",
+        "de": "Berufung"
+    }
+  }
+} 

@@ -5,11 +5,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import * as pdfjsLib from 'pdfjs-dist';
+import mammoth from 'mammoth';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 
 // Configure the worker for PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
+
+interface AnalysisRisk {
+  type: string;
+  severity: 'low' | 'medium' | 'high';
+  description: string;
+  recommendation: string;
+  section: string;
+}
+
+interface AnalysisResult {
+  id: string;
+  risk_level: 'low' | 'medium' | 'high';
+  summary: string;
+  recommendations: string[];
+  risks: AnalysisRisk[];
+  status?: 'processing' | 'analyzing' | 'completed' | 'failed';
+}
 
 /**
  * Extracts text content from a given file.
@@ -29,8 +47,13 @@ async function extractTextFromFile(file: File): Promise<string> {
     }
     return textContent;
   }
-  // TODO: Add support for .doc and .docx files
-  return new Promise((resolve) => resolve(''));
+  if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return result.value;
+  }
+  // .doc format is not supported for client-side extraction.
+  throw new Error('Unsupported file type for text extraction. Please use PDF or DOCX.');
 }
 
 /**
@@ -123,7 +146,7 @@ export function LovableFrontend() {
    * Contains risk assessment, suggestions, and detailed analysis
    * TODO: Define proper TypeScript interface for result structure
    */
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
   
@@ -164,12 +187,11 @@ export function LovableFrontend() {
       const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
       const SUPPORTED_TYPES = [
         'application/pdf',
-        'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       ];
 
       if (!SUPPORTED_TYPES.includes(selectedFile.type)) {
-        setError('Nem támogatott fájlformátum. Kérlek, válassz PDF, DOC, vagy DOCX fájlt.');
+        setError('Nem támogatott fájlformátum. Kérlek, válassz PDF vagy DOCX fájlt.');
         setFile(null);
         return;
       }
@@ -297,7 +319,7 @@ export function LovableFrontend() {
       formData.append('file', file);
       formData.append('analysisType', analysisType);
       formData.append('notes', notes);
-      
+
       // TODO: Add additional metadata
       // formData.append('userId', user.id);
       // formData.append('timestamp', new Date().toISOString());
@@ -421,7 +443,7 @@ export function LovableFrontend() {
           filter: `id=eq.${analysisId}`,
         },
         (payload) => {
-          const { new: newRecord } = payload;
+          const newRecord = payload.new as any as AnalysisResult;
           if (newRecord.status === 'completed') {
             setResult(newRecord);
             setProgress('Elemzés befejezve.');
@@ -458,7 +480,7 @@ export function LovableFrontend() {
             <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="document">Dokumentum feltöltése</Label>
-                <Input id="document" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
+                <Input id="document" type="file" accept=".pdf,.docx" onChange={handleFileChange} />
                 {file && <span className="text-xs text-muted-foreground">Kiválasztva: {file.name}</span>}
               </div>
               <div className="grid gap-2">
@@ -498,14 +520,28 @@ export function LovableFrontend() {
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">Összefoglaló: {result.summary}</p>
                 </div>
+                {result.recommendations && result.recommendations.length > 0 && (
                 <div className="p-4 bg-gray-50 rounded">
                   <h3 className="font-semibold mb-2">Javaslatok</h3>
                   <ul className="list-disc list-inside text-sm text-gray-600">
-                    {result.recommendations.map((s: string, i: number) => (
+                      {result.recommendations.map((s: string, i: number) => (
                       <li key={i}>{s}</li>
                     ))}
                   </ul>
                 </div>
+                )}
+                {result.risks && result.risks.length > 0 && (
+                  <div className="p-4 bg-gray-50 rounded">
+                    <h3 className="font-semibold mb-2">Kockázatok</h3>
+                    <ul className="list-disc list-inside text-sm text-gray-600">
+                      {result.risks.map((risk: AnalysisRisk, i: number) => (
+                        <li key={i}>
+                          <b>{risk.type} ({risk.severity}):</b> {risk.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-muted-foreground text-sm">Nincs még eredmény.</div>

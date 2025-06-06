@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.1.0'
+import { DocumentProcessor } from '../core-legal-platform/processing/DocumentProcessor.ts';
+import { LegalTranslationManager } from '../core-legal-platform/i18n/LegalTranslationManager.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,6 +42,17 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Initialize OpenAI
+    const configuration = new Configuration({ apiKey: Deno.env.get('OPENAI_API_KEY') })
+    const openai = new OpenAIApi(configuration)
+
+    // Initialize the new core platform components
+    const translationManager = new LegalTranslationManager(configuration);
+    const documentProcessor = new DocumentProcessor(translationManager);
+
+    // Process the document to detect its language
+    const { detectedLanguage } = await documentProcessor.process(content);
+
     // Create initial analysis record
     const { data: initialAnalysis, error: initialError } = await supabaseClient
       .from('contract_analyses')
@@ -47,7 +60,8 @@ serve(async (req) => {
         contract_id: documentId,
         analyzed_by: userId,
         status: 'processing',
-        risk_level: 'unknown'
+        risk_level: 'unknown',
+        language: detectedLanguage, // Save the detected language
       })
       .select()
       .single()
@@ -69,7 +83,7 @@ serve(async (req) => {
     )
 
     // Perform analysis asynchronously
-    performAnalysis(supabaseClient, initialAnalysis.id, content, userId, documentId)
+    performAnalysis(supabaseClient, openai, initialAnalysis.id, content, userId, documentId, req.body.analysisType, req.body.notes, detectedLanguage)
 
     return initialResponse;
 
@@ -90,143 +104,75 @@ serve(async (req) => {
 
 async function performAnalysis(
   supabaseClient: any,
+  openai: OpenAIApi,
   analysisId: string,
   content: string,
   userId: string,
-  documentId: string
+  documentId: string,
+  analysisType: string,
+  notes: string,
+  language: string
 ) {
   try {
-    // Update status to 'analyzing'
+    // Security Check: Verify user role server-side
+    const { data: roleData, error: roleError } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+
+    if (roleError || !roleData || roleData.role !== 'legal_manager') {
+      throw new Error('Permission denied: User does not have the required role for analysis.');
+    }
+
     await supabaseClient
       .from('contract_analyses')
       .update({ status: 'analyzing' })
-      .eq('id', analysisId)
+      .eq('id', analysisId);
 
-    // Initialize OpenAI client
-    const configuration = new Configuration({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    })
-    const openai = new OpenAIApi(configuration)
-
-    // Analyze contract using OpenAI
-    const analysisPrompt = `Analyze the following contract and provide a detailed analysis. Focus on:
-1. Overall risk assessment (low/medium/high)
-2. Key findings and summary
-3. Specific risks and their severity
-4. Recommendations for improvement
-
-Contract text:
-${content}`
-
+    const userPrompt = `Analyze the following document (language: ${language}) based on the user's request.\n\nAnalysis Type: ${analysisType}\n\n${notes ? `User Notes: ${notes}\n\n` : ''}Document Text:\n${content}`;
+    
     const completion = await openai.createChatCompletion({
-      model: "gpt-4",
+      model: "gpt-4-turbo-preview", // A model that supports JSON mode
       messages: [
-        {
-          role: "system",
-          content: "You are a legal contract analysis expert. Analyze the provided contract and identify potential risks, issues, and areas for improvement. Provide specific recommendations and categorize risks by severity."
+        { 
+          role: "system", 
+          content: `You are a legal analysis expert. Your task is to analyze the provided document and return a structured JSON object. The JSON object must conform to this schema: { "risk_level": "low" | "medium" | "high", "summary": string, "recommendations": string[], "risks": { "type": string, "severity": "low" | "medium" | "high", "description": string, "recommendation": string, "section": string }[] }. Based on the Analysis Type requested by the user (${analysisType}), tailor your response. For 'summary' or 'legal', the 'risks' array can be empty, but the summary should be very detailed.`
         },
-        {
-          role: "user",
-          content: analysisPrompt
-        }
+        { role: "user", content: userPrompt }
       ],
-      temperature: 0.3,
-      max_tokens: 2000
-    })
+      response_format: { type: "json_object" },
+      temperature: 0.2,
+    });
 
-    const analysisText = completion.data.choices[0]?.message?.content || ''
+    const analysisJson = JSON.parse(completion.data.choices[0]?.message?.content || '{}');
 
-    // Parse the analysis results
-    const analysisResult: ContractAnalysisResult = {
-      risk_level: 'medium', // Default value, will be updated based on analysis
-      summary: '',
-      recommendations: [],
-      risks: []
-    }
-
-    // Extract risk level
-    const riskLevelMatch = analysisText.match(/risk level:?\s*(low|medium|high)/i)
-    if (riskLevelMatch) {
-      analysisResult.risk_level = riskLevelMatch[1].toLowerCase() as 'low' | 'medium' | 'high'
-    }
-
-    // Extract summary
-    const summaryMatch = analysisText.match(/summary:?\s*([^\n]+)/i)
-    if (summaryMatch) {
-      analysisResult.summary = summaryMatch[1].trim()
-    }
-
-    // Extract recommendations
-    const recommendationsMatch = analysisText.match(/recommendations:?\s*([\s\S]+?)(?=\n\n|$)/i)
-    if (recommendationsMatch) {
-      analysisResult.recommendations = recommendationsMatch[1]
-        .split('\n')
-        .map(rec => rec.replace(/^[-•*]\s*/, '').trim())
-        .filter(rec => rec.length > 0)
-    }
-
-    // Extract risks
-    const risksMatch = analysisText.match(/risks:?\s*([\s\S]+?)(?=\n\n|$)/i)
-    if (risksMatch) {
-      const risksText = risksMatch[1]
-      const riskEntries = risksText.split('\n\n')
-      
-      analysisResult.risks = riskEntries.map(entry => {
-        const typeMatch = entry.match(/type:?\s*([^\n]+)/i)
-        const severityMatch = entry.match(/severity:?\s*(low|medium|high)/i)
-        const descriptionMatch = entry.match(/description:?\s*([^\n]+)/i)
-        const recommendationMatch = entry.match(/recommendation:?\s*([^\n]+)/i)
-        const sectionMatch = entry.match(/section:?\s*([^\n]+)/i)
-
-        return {
-          type: typeMatch?.[1]?.trim() || 'Unknown',
-          severity: (severityMatch?.[1]?.toLowerCase() || 'medium') as 'low' | 'medium' | 'high',
-          description: descriptionMatch?.[1]?.trim() || '',
-          recommendation: recommendationMatch?.[1]?.trim() || '',
-          section: sectionMatch?.[1]?.trim() || 'General'
-        }
-      }).filter(risk => risk.description.length > 0)
-    }
-
-    // Update analysis with results
-    const { error: analysisError } = await supabaseClient
-      .from('contract_analyses')
-      .update({
-        risk_level: analysisResult.risk_level,
-        summary: analysisResult.summary,
-        recommendations: analysisResult.recommendations,
-        status: 'completed'
-      })
-      .eq('id', analysisId)
-
-    if (analysisError) {
-      throw analysisError
-    }
-
-    // Save risks to database
-    if (analysisResult.risks.length > 0) {
-      const { error: risksError } = await supabaseClient
-        .from('risks')
-        .insert(
-          analysisResult.risks.map(risk => ({
-            analysis_id: analysisId,
-            type: risk.type,
-            severity: risk.severity,
-            description: risk.description,
-            recommendation: risk.recommendation,
-            section: risk.section
-          }))
-        )
-
-      if (risksError) {
-        throw risksError
-      }
-    }
-  } catch (error) {
-    console.error('Error in performAnalysis:', error)
     await supabaseClient
       .from('contract_analyses')
-      .update({ status: 'failed' })
-      .eq('id', analysisId)
+      .update({
+        risk_level: analysisJson.risk_level || 'unknown',
+        summary: analysisJson.summary || 'No summary provided.',
+        recommendations: analysisJson.recommendations || [],
+        status: 'completed'
+      })
+      .eq('id', analysisId);
+
+    if (analysisJson.risks && analysisJson.risks.length > 0) {
+      await supabaseClient
+        .from('risks')
+        .insert(
+          analysisJson.risks.map((risk: any) => ({
+            analysis_id: analysisId,
+            ...risk
+          }))
+        );
+    }
+
+  } catch (error) {
+    console.error('Error in performAnalysis:', error);
+    await supabaseClient
+      .from('contract_analyses')
+      .update({ status: 'failed', summary: error.message }) // Also log error message to DB
+      .eq('id', analysisId);
   }
 } 
