@@ -14,16 +14,14 @@ import { Session } from '@supabase/supabase-js';
  * Main App Component
  * 
  * This is the root component of the Legal AI Application that handles:
- * - Authentication state management
- * - Route configuration for different user roles
- * - Session management with Supabase
- * - Loading states during authentication checks
- * 
- * Features:
- * - Role-based access control (admin, legal_manager, analyst, viewer)
- * - Protected routes with authentication requirements
- * - Automatic session restoration on app load
- * - Redirect handling for unauthenticated users
+ * - Supabase authentication state management.
+ * - Route configuration for different user roles using React Router.
+ * - Session management and automatic restoration.
+ * - Loading states during authentication checks.
+ *
+ * The component sets up public routes (login, password reset) and protected routes
+ * with role-based access control for admin, legal_manager, analyst, and viewer roles.
+ * It ensures that users are redirected to the login page if they are not authenticated.
  */
 export function App() {
   // Authentication state - stores current user session
@@ -33,12 +31,12 @@ export function App() {
   const [loading, setLoading] = useState<boolean>(true);
 
   /**
-   * Authentication Effect
+   * useEffect for Authentication
    * 
-   * Handles:
-   * 1. Initial session retrieval from Supabase
-   * 2. Setting up auth state change listener
-   * 3. Cleanup of subscription on component unmount
+   * This effect runs once on component mount to handle the initial authentication check.
+   * 1. It retrieves the current session from Supabase.
+   * 2. It sets up an authentication state change listener to respond to login/logout events.
+   * 3. The listener subscription is cleaned up when the component unmounts.
    */
   useEffect(() => {
     // Get current session on app initialization

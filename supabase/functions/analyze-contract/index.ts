@@ -40,6 +40,68 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Create initial analysis record
+    const { data: initialAnalysis, error: initialError } = await supabaseClient
+      .from('contract_analyses')
+      .insert({
+        contract_id: documentId,
+        analyzed_by: userId,
+        status: 'processing',
+        risk_level: 'unknown'
+      })
+      .select()
+      .single()
+
+    if (initialError) {
+      throw initialError
+    }
+
+    // Return initial response to the client
+    const initialResponse = new Response(
+      JSON.stringify({
+        success: true,
+        data: initialAnalysis
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 202, // Accepted
+      }
+    )
+
+    // Perform analysis asynchronously
+    performAnalysis(supabaseClient, initialAnalysis.id, content, userId, documentId)
+
+    return initialResponse;
+
+  } catch (error) {
+    console.error('Error:', error)
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message || 'An error occurred during contract analysis'
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      }
+    )
+  }
+})
+
+async function performAnalysis(
+  supabaseClient: any,
+  analysisId: string,
+  content: string,
+  userId: string,
+  documentId: string
+) {
+  try {
+    // Update status to 'analyzing'
+    await supabaseClient
+      .from('contract_analyses')
+      .update({ status: 'analyzing' })
+      .eq('id', analysisId)
+
     // Initialize OpenAI client
     const configuration = new Configuration({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
@@ -126,18 +188,16 @@ ${content}`
       }).filter(risk => risk.description.length > 0)
     }
 
-    // Save analysis results to database
-    const { data: analysisData, error: analysisError } = await supabaseClient
+    // Update analysis with results
+    const { error: analysisError } = await supabaseClient
       .from('contract_analyses')
-      .insert({
-        contract_id: documentId,
-        analyzed_by: userId,
+      .update({
         risk_level: analysisResult.risk_level,
         summary: analysisResult.summary,
-        recommendations: analysisResult.recommendations
+        recommendations: analysisResult.recommendations,
+        status: 'completed'
       })
-      .select()
-      .single()
+      .eq('id', analysisId)
 
     if (analysisError) {
       throw analysisError
@@ -149,7 +209,7 @@ ${content}`
         .from('risks')
         .insert(
           analysisResult.risks.map(risk => ({
-            analysis_id: analysisData.id,
+            analysis_id: analysisId,
             type: risk.type,
             severity: risk.severity,
             description: risk.description,
@@ -162,29 +222,11 @@ ${content}`
         throw risksError
       }
     }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: analysisData
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    )
-
   } catch (error) {
-    console.error('Error:', error)
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message || 'An error occurred during contract analysis'
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
-    )
+    console.error('Error in performAnalysis:', error)
+    await supabaseClient
+      .from('contract_analyses')
+      .update({ status: 'failed' })
+      .eq('id', analysisId)
   }
-}) 
+} 
