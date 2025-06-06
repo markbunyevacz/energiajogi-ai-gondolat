@@ -33,6 +33,19 @@ export interface NotificationService {
   notifyInvalidation(invalidatedDoc: LegalDocument, causedBy: LegalDocument): Promise<void>;
 }
 
+// Definition for Conflict and ConflictReport
+export interface Conflict {
+  documentId1: string; // The document being checked or the new document
+  documentId2: string; // The existing document it conflicts with
+  conflictType: 'direct_contradiction' | 'scope_overlap' | 'procedural_conflict' | 'none';
+  details: string;
+}
+
+export interface ConflictReport {
+  hasConflicts: boolean;
+  conflicts: Conflict[];
+}
+
 // REAL IMPLEMENTATION: Legal text conflict analysis
 export class LegalConflictAnalyzer {
   private readonly legalKeywords = [
@@ -47,7 +60,8 @@ export class LegalConflictAnalyzer {
   ];
 
   /**
-   * Analyze legal documents for conflicts using semantic analysis
+   * Analyze legal documents for conflicts using semantic analysis.
+   * Note: This is a simplified analyzer. Real-world scenarios require advanced NLP.
    */
   analyzeConflict(newContent: string, existingContent: string): {
     hasConflict: boolean;
@@ -80,44 +94,42 @@ export class LegalConflictAnalyzer {
       };
     }
     
+    // Placeholder for procedural conflict (not implemented)
+    // if (this.detectProceduralConflict(newContent, existingContent)) {
+    //   return { hasConflict: true, conflictType: 'procedural_conflict', confidence: 0.7, details: ["Procedural conflict detected."] };
+    // }
+    
     return {
       hasConflict: false,
       conflictType: 'none',
-      confidence: 0.95,
+      confidence: 0.95, // High confidence if no conflict found by current rules
       details: []
     };
   }
 
   /**
-   * Extract legal entities and relationships from text
+   * Extract legal entities and relationships from text.
+   * Note: This is a very basic entity extraction. Advanced NLP/NER needed for accuracy.
    */
   private extractLegalEntities(content: string): { subjects: string[], actions: string[], objects: string[] } {
-    // REAL IMPLEMENTATION: Entity extraction using pattern matching
     const subjects: string[] = [];
     const actions: string[] = [];
     const objects: string[] = [];
     
-    // Extract legal subjects (e.g., "citizens", "businesses")
     const subjectMatches = content.match(/([A-Z][a-z]+(?: [A-Z][a-z]+)*) shall|must|may/gi) || [];
     subjects.push(...subjectMatches.map(m => m.split(' ')[0]));
     
-    // Extract legal actions
     const actionMatches = content.match(/shall|must|may|required to|prohibited from/gi) || [];
     actions.push(...actionMatches);
     
-    // Extract legal objects
     const objectMatches = content.match(/to [a-z]+ [a-z]+|from [a-z]+ [a-z]+/gi) || [];
     objects.push(...objectMatches.map(m => m.replace(/^(to|from) /, '')));
     
     return { subjects, actions, objects };
   }
 
-  /**
-   * Detect direct contradictions between legal provisions
-   */
   private detectDirectContradiction(content1: string, content2: string): string[] {
     const contradictions: string[] = [];
-    
     for (const pattern of this.contradictionPatterns) {
       const hasPositive1 = pattern.positive.test(content1);
       const hasNegative1 = pattern.negative.test(content1);
@@ -125,46 +137,30 @@ export class LegalConflictAnalyzer {
       const hasNegative2 = pattern.negative.test(content2);
       
       if ((hasPositive1 && hasNegative2) || (hasNegative1 && hasPositive2)) {
-        contradictions.push(`Contradiction found: ${pattern.positive} vs ${pattern.negative}`);
+        contradictions.push(`Direct contradiction found based on pattern: positive regex '${pattern.positive}' vs negative regex '${pattern.negative}'`);
       }
     }
-    
     return contradictions;
   }
 
-  /**
-   * Detect overlapping regulatory scope
-   */
   private detectScopeOverlap(
     entities1: { subjects: string[], actions: string[], objects: string[] },
     entities2: { subjects: string[], actions: string[], objects: string[] }
   ): string[] {
     const overlaps: string[] = [];
-    
-    // Check for subject overlap
-    const subjectOverlap = entities1.subjects.filter(subj => 
-      entities2.subjects.includes(subj)
-    );
+    const subjectOverlap = entities1.subjects.filter(subj => entities2.subjects.includes(subj));
     if (subjectOverlap.length > 0) {
-      overlaps.push(`Subject overlap: ${subjectOverlap.join(', ')}`);
+      overlaps.push(`Subject overlap on: ${subjectOverlap.join(', ')}`);
     }
-    
-    // Check for object overlap
-    const objectOverlap = entities1.objects.filter(obj => 
-      entities2.objects.includes(obj)
-    );
+    const objectOverlap = entities1.objects.filter(obj => entities2.objects.includes(obj));
     if (objectOverlap.length > 0) {
-      overlaps.push(`Object overlap: ${objectOverlap.join(', ')}`);
+      overlaps.push(`Object overlap on: ${objectOverlap.join(', ')}`);
     }
-    
     return overlaps;
   }
 
-  /**
-   * Calculate confidence score based on evidence
-   */
   private calculateConfidence(evidenceCount: number): number {
-    return Math.min(0.95, 0.7 + (evidenceCount * 0.1));
+    return Math.min(0.95, 0.7 + (evidenceCount * 0.1)); // Capped at 0.95
   }
 }
 
@@ -172,107 +168,214 @@ export class LegalConflictAnalyzer {
 export class LegalNotificationService implements NotificationService {
   async notifyConflict(document: LegalDocument, conflictingDocs: LegalDocument[]): Promise<void> {
     // REAL IMPLEMENTATION: Integrate with actual notification system
-    console.log(`[CONFLICT] Document ${document.id} conflicts with: ${
-      conflictingDocs.map(d => d.id).join(', ')
-    }`);
-    
-    // In a real system, this would:
-    // 1. Send email/notification to stakeholders
-    // 2. Create a conflict resolution ticket
-    // 3. Log to audit system
+    // This is a placeholder. In a real system, this would:
+    // 1. Send email/notification to relevant stakeholders (e.g., document owners, legal reviewers).
+    // 2. Create a conflict resolution task in a workflow system or ticketing system.
+    // 3. Log the conflict details to an audit trail or monitoring system.
+    console.warn(`[LEGAL HIERARCHY CONFLICT]`);
+    console.warn(`Document ID: ${document.id} (Title: "${document.title}", Level: ${LegalHierarchyLevel[document.hierarchyLevel]})`);
+    console.warn(`Conflicts with the following document(s):`);
+    conflictingDocs.forEach(conflictingDoc => {
+      console.warn(`  - ID: ${conflictingDoc.id} (Title: "${conflictingDoc.title}", Level: ${LegalHierarchyLevel[conflictingDoc.hierarchyLevel]})`);
+    });
+    // Example: sendEmail('legal-team@example.com', 'Conflict Detected', `...details...`);
+    // Example: createJiraTicket('Conflict in document ' + document.id, '...');
   }
 
   async notifyInvalidation(invalidatedDoc: LegalDocument, causedBy: LegalDocument): Promise<void> {
     // REAL IMPLEMENTATION: Integrate with actual notification system
-    console.log(`[INVALIDATION] Document ${invalidatedDoc.id} invalidated by ${causedBy.id}`);
-    
-    // In a real system, this would:
-    // 1. Notify document owners
-    // 2. Update document status in database
-    // 3. Trigger revalidation workflow
+    // This is a placeholder. In a real system, this would:
+    // 1. Notify owners/stewards of the invalidated document.
+    // 2. Update the document's status to "Invalid" or "Requires Review" in the primary document management system/database.
+    // 3. Potentially trigger automated workflows for re-evaluation or archival of the invalidated document.
+    // 4. Log the invalidation event for auditing purposes.
+    console.warn(`[LEGAL DOCUMENT INVALIDATION]`);
+    console.warn(`Document ID: ${invalidatedDoc.id} (Title: "${invalidatedDoc.title}", Level: ${LegalHierarchyLevel[invalidatedDoc.hierarchyLevel]}) has been invalidated.`);
+    console.warn(`Reason: Changes in higher-level document ID: ${causedBy.id} (Title: "${causedBy.title}", Level: ${LegalHierarchyLevel[causedBy.hierarchyLevel]}).`);
+    console.warn(`The status of document ${invalidatedDoc.id} should be updated to reflect this invalidation.`);
+    // Example: updateDocumentStatusInDB(invalidatedDoc.id, 'INVALID');
+    // Example: sendEmail(invalidatedDoc.ownerEmail, 'Document Invalidated', '...');
   }
 }
 
 // REAL IMPLEMENTATION: DocumentProcessor integration
 export class HierarchyManager {
-  private readonly documentHierarchy: Map<string, LegalHierarchyLevel>;
+  private readonly documents: Map<string, LegalDocument> = new Map();
   private readonly notificationService: NotificationService;
+  private readonly conflictAnalyzer: LegalConflictAnalyzer;
 
   constructor(notificationService: NotificationService) {
-    this.documentHierarchy = new Map();
     this.notificationService = notificationService;
+    this.conflictAnalyzer = new LegalConflictAnalyzer();
   }
 
-  public registerDocument(docId: string, level: LegalHierarchyLevel): void {
-    this.documentHierarchy.set(docId, level);
+  public registerDocument(doc: LegalDocument): void {
+    if (!doc || typeof doc.id !== 'string' || typeof doc.hierarchyLevel === 'undefined') {
+        console.error("Attempted to register an invalid or incomplete document.", doc);
+        // Optionally throw an error: throw new Error("Invalid document for registration.");
+        return;
+    }
+    doc.isValid = doc.isValid !== undefined ? doc.isValid : true; // Default to valid if not specified
+    doc.lastModified = doc.lastModified || new Date();
+    this.documents.set(doc.id, doc);
+    console.log(`Document ${doc.id} registered. Level: ${LegalHierarchyLevel[doc.hierarchyLevel]}, Valid: ${doc.isValid}`);
   }
 
   public checkConflicts(newDoc: LegalDocument): ConflictReport {
     const conflicts: Conflict[] = [];
+    if (!newDoc || !newDoc.content) {
+        console.warn("Cannot check conflicts for a document without content.", newDoc);
+        return { hasConflicts: false, conflicts: [] };
+    }
     
-    for (const [existingId, existingLevel] of this.documentHierarchy) {
-      const newLevel = newDoc.hierarchyLevel;
-      
-      if (newLevel < existingLevel && 
-          this.hasConflictingProvisions(newDoc, existingId)) {
-        conflicts.push({
-          newDocument: newDoc.id,
-          conflictingDocument: existingId,
-          hierarchyLevel: existingLevel
-        });
+    for (const existingDoc of this.documents.values()) {
+      if (newDoc.id === existingDoc.id) continue; 
+      if (!existingDoc.isValid) continue; // Skip conflicts with already invalid documents
+
+      // Conflict check logic:
+      // 1. If newDoc is lower level than existingDoc (e.g., new Ordinary Law vs existing Constitution)
+      //    -> newDoc potential conflict with existingDoc (higher authority)
+      // 2. If newDoc is same level as existingDoc (e.g., new Ordinary Law vs existing Ordinary Law)
+      //    -> mutual conflict potential
+      // 3. If newDoc is higher level than existingDoc (e.g., new Constitution vs existing Ordinary Law)
+      //    -> this scenario primarily triggers cascade invalidation for existingDoc if newDoc changes,
+      //       not typically a "conflict" that invalidates newDoc itself.
+      //       However, for completeness, we might still want to log potential inconsistencies.
+      //       Let's focus on newDoc being invalidated by higher or same level laws.
+      if (newDoc.hierarchyLevel >= existingDoc.hierarchyLevel) { // newDoc is lower or same level
+        const conflictResult = this.conflictAnalyzer.analyzeConflict(newDoc.content, existingDoc.content);
+        if (conflictResult.hasConflict) {
+          const conflictDetail: Conflict = {
+            documentId1: newDoc.id,
+            documentId2: existingDoc.id,
+            conflictType: conflictResult.conflictType,
+            details: `Conflict between ${newDoc.id} (Level: ${LegalHierarchyLevel[newDoc.hierarchyLevel]}) and ${existingDoc.id} (Level: ${LegalHierarchyLevel[existingDoc.hierarchyLevel]}): ${conflictResult.details.join('; ')}`
+          };
+          conflicts.push(conflictDetail);
+          // Consider notifying immediately or letting the caller handle notifications based on the report.
+          // await this.notificationService.notifyConflict(newDoc, [existingDoc]); // Example immediate notification
+        }
       }
     }
     
-    return { hasConflicts: conflicts.length > 0, conflicts };
+    const report = { hasConflicts: conflicts.length > 0, conflicts };
+    if (report.hasConflicts) {
+        console.warn(`Conflict check for ${newDoc.id} found ${report.conflicts.length} conflicts.`);
+    }
+    return report;
   }
 
-  public cascadeInvalidation(changedDocId: string): void {
-    const changedLevel = this.documentHierarchy.get(changedDocId);
-    if (changedLevel === undefined) return;
+  public async cascadeInvalidation(changedDocId: string): Promise<void> {
+    const changedDoc = this.documents.get(changedDocId);
+    // Ensure the changed document itself is valid and exists before cascading.
+    // If a document is updated to be invalid, that change itself is the event,
+    // and then cascade considers its previous valid state or the implications of its new (e.g. amended) content if it's still valid.
+    // For simplicity, we assume changedDoc is the *newly validated and current version* of the document.
+    if (!changedDoc || !changedDoc.isValid) {
+      console.log(`Cascade invalidation skipped: Document ${changedDocId} not found or is already invalid.`);
+      return;
+    }
 
-    const invalidatedDocs: string[] = [];
+    const invalidatedDocsBatch: LegalDocument[] = [];
     
-    for (const [docId, level] of this.documentHierarchy) {
-      if (level > changedLevel && 
-          this.dependsOn(changedDocId, docId)) {
-        invalidatedDocs.push(docId);
-        this.invalidateDocument(docId);
+    for (const doc of this.documents.values()) {
+      if (doc.id === changedDocId || !doc.isValid) continue; // Don't compare with itself or already invalid docs
+
+      // A document 'doc' should be invalidated if:
+      // 1. 'doc' is of a lower hierarchy level than 'changedDoc'.
+      // 2. 'doc' depends on 'changedDoc'.
+      if (doc.hierarchyLevel > changedDoc.hierarchyLevel && this.dependsOn(changedDoc, doc)) {
+        // Invalidate 'doc'
+        const previousIsValid = doc.isValid;
+        doc.isValid = false;
+        doc.lastModified = new Date();
+        if (previousIsValid) { // Only add to batch and log if it was previously valid
+            invalidatedDocsBatch.push(doc);
+            console.log(`Document ${doc.id} (Level: ${LegalHierarchyLevel[doc.hierarchyLevel]}) marked as invalid due to changes in ${changedDoc.id} (Level: ${LegalHierarchyLevel[changedDoc.hierarchyLevel]}).`);
+        }
       }
     }
 
-    if (invalidatedDocs.length > 0) {
-      this.notificationService.sendInvalidationNotice({
-        triggerDocument: changedDocId,
-        invalidatedDocuments: invalidatedDocs
-      });
+    if (invalidatedDocsBatch.length > 0) {
+      // Notify for each invalidated document
+      for (const invalidatedDoc of invalidatedDocsBatch) {
+        // Ensure causedBy is the document that triggered the invalidation
+        await this.notificationService.notifyInvalidation(invalidatedDoc, changedDoc);
+      }
+      console.log(`${invalidatedDocsBatch.length} document(s) were invalidated and notifications sent.`);
+    } else {
+        console.log(`No documents were invalidated by the change in ${changedDocId}.`);
     }
   }
 
-  private invalidateDocument(docId: string): void {
-    // Implementation of document invalidation logic
-    // ... existing document invalidation code ...
+  // invalidateDocument is now effectively part of cascadeInvalidation logic to update internal state.
+  // It's not called directly from outside in this refactor but kept if direct invalidation becomes a feature.
+  private invalidateDocument(docId: string, causedBy: LegalDocument): void {
+    const document = this.documents.get(docId);
+    if (document && document.isValid) { // Only act if document exists and is currently valid
+      document.isValid = false;
+      document.lastModified = new Date();
+      console.log(`Document ${docId} has been programmatically invalidated by ${causedBy.id}.`);
+      // No notification from here; cascadeInvalidation handles notifications.
+    }
+  }
+  
+  // Removed hasConflictingProvisions as its logic is now directly in checkConflicts with conflictAnalyzer
+
+  /**
+   * Checks if a lower-level document 'lowerDoc' depends on a higher-level document 'higherDoc'.
+   * This is a simplified check. Real-world dependency might involve analyzing content for explicit references,
+   * common subject matter, or maintained dependency graphs.
+   * @param higherDoc The higher-level document.
+   * @param lowerDoc The lower-level document.
+   * @returns True if lowerDoc is considered dependent on higherDoc for invalidation purposes.
+   */
+  private dependsOn(higherDoc: LegalDocument, lowerDoc: LegalDocument): boolean {
+    if (!higherDoc || !lowerDoc) return false;
+    if (!higherDoc.isValid) return false; // Cannot depend on an invalid document for this purpose.
+    
+    // Basic hierarchical dependency: a lower-level law depends on a higher-level one.
+    // More advanced: check for thematic links, shared keywords, explicit citations (future enhancement).
+    return lowerDoc.hierarchyLevel > higherDoc.hierarchyLevel;
   }
 
-  private hasConflictingProvisions(newDoc: LegalDocument, existingId: string): boolean {
-    // Implementation of legal provision conflict detection
-    // ... existing conflict detection logic ...
-  }
-
-  private dependsOn(higherDocId: string, lowerDocId: string): boolean {
-    // Implementation of dependency checking
-    // ... existing dependency tracking ...
-  }
-
-  // INTEGRATION POINT: DocumentProcessor hook
   public async validateDocumentForProcessor(document: LegalDocument): Promise<boolean> {
-    const conflicts = await this.detectConflicts(document);
-    return conflicts.length === 0;
+    if (!this.documents.has(document.id)) {
+       // Important: The document should be registered first to be part of the hierarchy for accurate conflict checking.
+       // Consider if this method should auto-register or throw if not found.
+       // For now, we proceed, but conflicts might be missed if it's not in `this.documents`.
+       console.warn(`Document ${document.id} is being validated but is not registered in HierarchyManager. Register it first for comprehensive checks.`);
+    }
+    if (!document.isValid) {
+        console.log(`Document ${document.id} is already marked as invalid. Skipping conflict checks for processor validation.`);
+        return false; // Or true, depending on whether an invalid doc should pass "validation" (likely false)
+    }
+
+    const report = this.checkConflicts(document); 
+    
+    if (report.hasConflicts) {
+      console.log(`[VALIDATION FAIL] Document ${document.id} (Level: ${LegalHierarchyLevel[document.hierarchyLevel]}) has ${report.conflicts.length} conflicts:`);
+      report.conflicts.forEach(conflict => {
+        const conflictingDoc = this.documents.get(conflict.documentId2);
+        const conflictingDocLevel = conflictingDoc ? LegalHierarchyLevel[conflictingDoc.hierarchyLevel] : 'N/A';
+        console.log(`  - Conflicts with: ${conflict.documentId2} (Level: ${conflictingDocLevel}), Type: ${conflict.conflictType}, Details: ${conflict.details}`);
+      });
+      // Optionally, notify about conflicts found during this validation step using NotificationService
+      // This depends on whether the caller or this method is responsible for notifications.
+      // For example:
+      // const conflictingDocs = report.conflicts.map(c => this.getDocument(c.documentId2)).filter(d => d !== undefined) as LegalDocument[];
+      // if (conflictingDocs.length > 0) {
+      //    await this.notificationService.notifyConflict(document, conflictingDocs);
+      // }
+      return false; // Validation fails if there are conflicts
+    }
+    console.log(`[VALIDATION SUCCESS] Document ${document.id} passed hierarchy validation.`);
+    return true; // Validation passes if no conflicts
   }
 
-  // Utility methods for hierarchy management
   getDocumentsByLevel(level: LegalHierarchyLevel): LegalDocument[] {
     return Array.from(this.documents.values())
-      .filter(doc => doc.hierarchyLevel === level);
+      .filter(doc => doc.hierarchyLevel === level && doc.isValid); // Added isValid check
   }
 
   getValidDocuments(): LegalDocument[] {
@@ -289,19 +392,17 @@ export class HierarchyManager {
   }
 }
 
-const mergeLegalState = (hierarchyState, queueState) => ({
+// This function seems like a utility for a broader state management, possibly unrelated to the core HierarchyManager internal logic.
+// Providing 'any' types to satisfy linter for now, as its specific structure is external to this file's main concern.
+const mergeLegalState = (hierarchyState: any, queueState: any) => ({
   legalHierarchy: {
     ...hierarchyState,
     validationQueue: queueState.priorityQueue
   }
 });
 
-// Local changes (queue integration)
-import { MessageQueue } from '../queue/MessageQueue';
-
-// Feature branch (hierarchy implementation)
-import { NotificationService } from '../notifications';
-
-// Resolved version (merge both)
-import { MessageQueue } from '../queue/MessageQueue';
-import { NotificationService } from '../notifications'; 
+// Removed problematic imports from the end of the file as definitions are local or should be properly managed at the top.
+// import { MessageQueue } from '../queue/MessageQueue';
+// import { NotificationService } from '../notifications'; 
+// import { MessageQueue } from '../queue/MessageQueue';
+// import { NotificationService } from '../notifications'; 
