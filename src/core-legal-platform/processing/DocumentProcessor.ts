@@ -72,26 +72,4 @@ export class DocumentProcessor {
   public async translate(text: string, targetLanguage: LanguageCode): Promise<string> {
     return this.translationManager.translateFullDocument(text, targetLanguage);
   }
-
-  /**
-   * Translates only the known legal terms within a document using the local dictionary.
-   * This is a fast but naive approach, useful for highlighting terms, not for full translation.
-   * 
-   * @param text The text to translate.
-   * @param targetLanguage The desired output language.
-   * @returns Text with only known legal terms translated.
-   */
-  public translateKnownTerms(text: string, targetLanguage: LanguageCode): string {
-    // This is a naive implementation for demonstration.
-    // It splits text by spaces and tries to translate words.
-    // A real implementation would need to handle grammar, sentence structure, etc.
-    const words = text.split(' ');
-    const translatedWords = words.map(word => {
-        // Remove punctuation for lookup
-        const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-        const translatedWord = this.translationManager.translate(cleanWord, targetLanguage);
-        return translatedWord === cleanWord ? word : word.replace(cleanWord, translatedWord);
-    });
-    return translatedWords.join(' ');
-  }
 } 

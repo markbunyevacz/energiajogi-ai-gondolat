@@ -14,10 +14,10 @@ export type LegalTerm = string;
  */
 export interface LegalTermEntry {
   canonicalName: LegalTerm;
-  [key: string]: LegalTerm | Record<string, LegalTerm>; // Allow for nested translations or metadata
   translations: {
     [K in LanguageCode]?: LegalTerm;
   };
+  metadata?: Record<string, any>; // For additional data, e.g., from external APIs
 }
 
 /**
@@ -116,45 +116,41 @@ export class LegalTranslationManager {
   }
 
   /**
-   * Integrates with an external terminology database to find translations.
-   * This is a real implementation that calls a public dictionary API
-   * to demonstrate the pattern of integrating with services like IATE.
+   * Integrates with an external terminology database (e.g., IATE) to find translations.
+   * This is a placeholder for a real implementation.
    *
    * @param term The term to look up.
    * @param language The language of the term.
-   * @returns A promise that resolves to a potential translation entry.
+   * @returns A promise that resolves to a potential translation entry or null.
    */
   public async lookupApi(term: LegalTerm, language: LanguageCode): Promise<LegalTermEntry | null> {
-    try {
-      // Using the Free Dictionary API as a stand-in for a real legal thesaurus like IATE.
-      // The pattern of fetching and transforming data is the key takeaway.
-      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/${language}/${term}`);
-
-      if (!response.ok) {
-        console.warn(`Could not find term "${term}" in the external API.`);
-        return null;
-      }
-
-      const data = await response.json();
-      
-      // Basic transformation from the API response to our internal format.
-      // A real IATE integration would have a more complex transformation logic.
-      if (data.length > 0 && data[0].meanings.length > 0) {
-        const entry: LegalTermEntry = {
-          canonicalName: term,
-          translations: {
-            [language]: term,
-          },
-          apiResponse: data[0], // Store raw response for more detail if needed
-        };
-        return entry;
-      }
-
-      return null;
-    } catch (error) {
-      console.error("Error looking up term in external API:", error);
+    // TODO: Implement a real integration with a legal terminology database like IATE.
+    // The following is a placeholder structure.
+    console.warn(`lookupApi is a placeholder and not implemented. Called for term "${term}" in ${language}.`);
+    
+    // Example of what a real implementation might return:
+    /*
+    const response = await fetch(`https://example-iate-api.eu/lookup?term=${term}&lang=${language}`);
+    if (!response.ok) {
       return null;
     }
+    const data = await response.json();
+    const entry: LegalTermEntry = {
+      canonicalName: data.canonicalName,
+      translations: {
+        en: data.translations.en,
+        hu: data.translations.hu,
+        de: data.translations.de,
+      },
+      metadata: {
+        source: 'IATE',
+        domain: data.domain,
+      }
+    };
+    return entry;
+    */
+    
+    return Promise.resolve(null);
   }
 
   /**
