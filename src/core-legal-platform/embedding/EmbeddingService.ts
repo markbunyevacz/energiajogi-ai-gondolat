@@ -18,7 +18,7 @@ export class EmbeddingService {
       similarity_threshold: threshold,
       max_count: limit
     });
-    return data?.map(item => item.document_id) || [];
+    return data?.map((item: any) => item.document_id) || [];
   }
 
   // Add proper implementation
@@ -33,7 +33,7 @@ export class EmbeddingService {
       match_count: limit
     });
     
-    return data?.map(item => ({
+    return (data as any)?.map((item: any) => ({
       id: item.document_id,
       content: item.content,
       embedding: item.embedding,
